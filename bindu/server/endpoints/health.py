@@ -1,7 +1,7 @@
 """Health check endpoint for service monitoring."""
 
 from __future__ import annotations
-
+from datetime import datetime, timezone
 from time import time
 
 from starlette.requests import Request
@@ -27,10 +27,18 @@ async def health_endpoint(app: BinduApplication, request: Request) -> JSONRespon
     logger.debug(f"Health check from {client_ip}")
 
     uptime = round(time() - _start_time, 2)
+
+    # dynamic status (safe improvement)
+    status = "ok" if app else "error"
+
     payload = {
-        "status": "ok",
+        "status": status,
         "uptime_seconds": uptime,
         "version": __version__,
         "ready": True,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": app.settings.project.name,  # dynamic instead of hardcoded
+        "client_ip": client_ip,  # useful for monitoring/debugging
     }
+
     return JSONResponse(payload)
