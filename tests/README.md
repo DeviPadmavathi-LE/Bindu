@@ -12,7 +12,6 @@ tests/
 │   ├── test_scheduler.py           # Task scheduler tests
 │   ├── test_manifest_worker.py     # Worker & hybrid pattern tests
 │   └── test_task_manager.py        # TaskManager tests
-├── integration/                    # Integration tests
 │   └── test_postman_scenarios.py   # Postman collection scenarios
 ├── e2e/                            # End-to-end tests
 ├── conftest.py                     # Pytest fixtures
@@ -57,8 +56,6 @@ uv run coverage report --skip-covered --fail-under=70
 # Run only unit tests
 pytest -m unit
 
-# Run only integration tests
-pytest -m integration
 
 # Run only asyncio tests
 pytest -m asyncio
