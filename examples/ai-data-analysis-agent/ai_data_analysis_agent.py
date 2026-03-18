@@ -96,7 +96,9 @@ def handler(messages: list[dict]):
                 "Proactively use the 'generate_visualization' tool to create compelling charts.",
                 "Always format your final output as a highly structured analytical report using Markdown."
             ],
-            model=OpenRouter(id="openai/gpt-5.4-nano"), # Or whatever model you prefer!
+            model=OpenRouter(
+                id="openai/gpt-oss-120b",
+                api_key=os.getenv("OPENROUTER_API_KEY"),), # Or whatever model you prefer!
             tools=[analyze_dataset, generate_visualization],
             markdown=True,
             telemetry=False # Keep this to prevent Agno from fighting with Bindu's tracing
@@ -128,21 +130,12 @@ config = {
     "author": "your.email@example.com",
     "name": "AI Data Analysis Agent",
     "description": "An analytical agent that processes CSV data and generates visual charts.",
-    "version": "1.0.0",
-    "skills": [
-        {
-            "id": "data-analysis-skill",
-            "name": "data-analysis",
-            "description": "Analyzes CSV datasets and generates visual charts.",
-            "documentationPath": "./skills/skills.yaml"
-        }
-    ], 
     "deployment": {
-        "url": os.getenv("BINDU_DEPLOYMENT_URL", "http://localhost:3773"),
-        "expose": True,
-        "cors_origins": ["http://localhost:5173"],
-    },
-    "recreate_keys": False,
+            "url": "http://localhost:3773",
+            "expose": True,
+            "cors_origins": ["http://localhost:5173"]
+        },
+    "skills":["skills/ai-data-analysis-agent"],
 }
 
 if __name__ == "__main__":
