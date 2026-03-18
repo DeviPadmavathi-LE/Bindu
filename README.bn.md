@@ -1,49 +1,49 @@
-\<div align="center" id="top"\>
-\<a href="[https://getbindu.com](https://getbindu.com)"\>
-\<picture\>
-\<img src="assets/bindu.png" alt="Bindu" width="300"\>
-\</picture\>
-\</a\>
-\</div\>
+<div align="center" id="top">
+<a href="[https://getbindu.com](https://getbindu.com)">
+<picture>
+<img src="assets/bindu.png" alt="Bindu" width="300">
+</picture>
+</a>
+</div>
 
-\<p align="center"\>
-\<em\>AI এজেন্টদের জন্য আইডেন্টিটি, কমিউনিকেশন এবং পেমেন্ট লেয়ার\</em\>
-\</p\>
+<p align="center">
+<em>AI এজেন্টদের জন্য আইডেন্টিটি, কমিউনিকেশন এবং পেমেন্ট লেয়ার</em>
+</p>
 
-\<p align="center"\>
-\<a href="README.md"\>🇬🇧 English\</a\> •
-\<a href="README.de.md"\>🇩🇪 Deutsch\</a\> •
-\<a href="README.es.md"\>🇪🇸 Español\</a\> •
-\<a href="README.fr.md"\>🇫🇷 Français\</a\> •
-\<a href="README.hi.md"\>🇮🇳 हिंदी\</a\> •
-\<a href="README.bn.md"\>🇮🇳 বাংলা\</a\> •
-\<a href="README.zh.md"\>🇨🇳 中文\</a\> •
-\<a href="README.nl.md"\>🇳🇱 Nederlands\</a\> •
-\<a href="README.ta.md"\>🇮🇳 தமிழ்\</a\>
-\</p\>
+<p align="center">
+<a href="README.md">🇬🇧 English</a> •
+<a href="README.de.md">🇩🇪 Deutsch</a> •
+<a href="README.es.md">🇪🇸 Español</a> •
+<a href="README.fr.md">🇫🇷 Français</a> •
+<a href="README.hi.md">🇮🇳 हिंदी</a> •
+<a href="README.bn.md">🇮🇳 বাংলা</a> •
+<a href="README.zh.md">🇨🇳 中文</a> •
+<a href="README.nl.md">🇳🇱 Nederlands</a> •
+<a href="README.ta.md">🇮🇳 தமிழ்</a>
+</p>
 
-\<p align="center"\>
-\<a href="[https://opensource.org/licenses/Apache-2.0](https://opensource.org/licenses/Apache-2.0)"\>\<img src="[https://img.shields.io/badge/license-Apache%202.0-blue.svg](https://img.shields.io/badge/license-Apache%202.0-blue.svg)" alt="License"\>\</a\>
-\<a href="[https://hits.sh/github.com/Saptha-me/Bindu.svg](https://hits.sh/github.com/Saptha-me/Bindu.svg)"\>\<img src="[https://hits.sh/github.com/Saptha-me/Bindu.svg](https://hits.sh/github.com/Saptha-me/Bindu.svg)" alt="Hits"\>\</a\>
-\<a href="[https://www.python.org/downloads/](https://www.python.org/downloads/)"\>\<img src="[https://img.shields.io/badge/python-3.12+-blue.svg](https://img.shields.io/badge/python-3.12+-blue.svg)" alt="Python Version"\>\</a\>
-\<a href="[https://pepy.tech/projects/bindu](https://pepy.tech/projects/bindu)"\>\<img src="[https://static.pepy.tech/personalized-badge/bindu?period=total\&units=INTERNATIONAL\_SYSTEM\&left\_color=BLACK\&right\_color=GREEN\&left\_text=downloads](https://static.pepy.tech/personalized-badge/bindu?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)" alt="PyPI Downloads"\>\</a\>
-\<a href="[https://pypi.org/project/bindu/](https://pypi.org/project/bindu/)"\>\<img src="[https://img.shields.io/pypi/v/bindu.svg](https://img.shields.io/pypi/v/bindu.svg)" alt="PyPI version"\>\</a\>
-\<a href="[https://pypi.org/project/bindu/](https://pypi.org/project/bindu/)"\>\<img src="[https://img.shields.io/pypi/dm/bindu](https://img.shields.io/pypi/dm/bindu)" alt="PyPI Downloads"\>\</a\>
-\<a href="[https://coveralls.io/github/Saptha-me/Bindu?branch=v0.3.18](https://coveralls.io/github/Saptha-me/Bindu?branch=v0.3.18)"\>\<img src="[https://coveralls.io/repos/github/Saptha-me/Bindu/badge.svg?branch=v0.3.18](https://coveralls.io/repos/github/Saptha-me/Bindu/badge.svg?branch=v0.3.18)" alt="Coverage"\>\</a\>
-\<a href="[https://github.com/getbindu/Bindu/actions/workflows/release.yml](https://github.com/getbindu/Bindu/actions/workflows/release.yml)"\>\<img src="[https://github.com/getbindu/Bindu/actions/workflows/release.yml/badge.svg](https://github.com/getbindu/Bindu/actions/workflows/release.yml/badge.svg)" alt="Tests"\>\</a\>
-\<a href="[https://discord.gg/3w5zuYUuwt](https://discord.gg/3w5zuYUuwt)"\>\<img src="[https://img.shields.io/badge/Join%20Discord-7289DA?logo=discord\&logoColor=white](https://img.shields.io/badge/Join%20Discord-7289DA?logo=discord&logoColor=white)" alt="Discord"\>\</a\>
-\<a href="[https://github.com/getbindu/Bindu/graphs/contributors](https://github.com/getbindu/Bindu/graphs/contributors)"\>\<img src="[https://img.shields.io/github/contributors/getbindu/Bindu](https://img.shields.io/github/contributors/getbindu/Bindu)" alt="Contributors"\>\</a\>
-\</p\>
+<p align="center">
+<a href="[https://opensource.org/licenses/Apache-2.0](https://opensource.org/licenses/Apache-2.0)"><img src="[https://img.shields.io/badge/license-Apache%202.0-blue.svg](https://img.shields.io/badge/license-Apache%202.0-blue.svg)" alt="License"></a>
+<a href="[https://hits.sh/github.com/Saptha-me/Bindu.svg](https://hits.sh/github.com/Saptha-me/Bindu.svg)"><img src="[https://hits.sh/github.com/Saptha-me/Bindu.svg](https://hits.sh/github.com/Saptha-me/Bindu.svg)" alt="Hits"></a>
+<a href="[https://www.python.org/downloads/](https://www.python.org/downloads/)"><img src="[https://img.shields.io/badge/python-3.12+-blue.svg](https://img.shields.io/badge/python-3.12+-blue.svg)" alt="Python Version"></a>
+<a href="[https://pepy.tech/projects/bindu](https://pepy.tech/projects/bindu)"><img src="[https://static.pepy.tech/personalized-badge/bindu?period=total\&units=INTERNATIONAL_SYSTEM\&left_color=BLACK\&right_color=GREEN\&left_text=downloads](https://static.pepy.tech/personalized-badge/bindu?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)" alt="PyPI Downloads"></a>
+<a href="[https://pypi.org/project/bindu/](https://pypi.org/project/bindu/)"><img src="[https://img.shields.io/pypi/v/bindu.svg](https://img.shields.io/pypi/v/bindu.svg)" alt="PyPI version"></a>
+<a href="[https://pypi.org/project/bindu/](https://pypi.org/project/bindu/)"><img src="[https://img.shields.io/pypi/dm/bindu](https://img.shields.io/pypi/dm/bindu)" alt="PyPI Downloads"></a>
+<a href="[https://coveralls.io/github/Saptha-me/Bindu?branch=v0.3.18](https://coveralls.io/github/Saptha-me/Bindu?branch=v0.3.18)"><img src="[https://coveralls.io/repos/github/Saptha-me/Bindu/badge.svg?branch=v0.3.18](https://coveralls.io/repos/github/Saptha-me/Bindu/badge.svg?branch=v0.3.18)" alt="Coverage"></a>
+<a href="[https://github.com/getbindu/Bindu/actions/workflows/release.yml](https://github.com/getbindu/Bindu/actions/workflows/release.yml)"><img src="[https://github.com/getbindu/Bindu/actions/workflows/release.yml/badge.svg](https://github.com/getbindu/Bindu/actions/workflows/release.yml/badge.svg)" alt="Tests"></a>
+<a href="[https://discord.gg/3w5zuYUuwt](https://discord.gg/3w5zuYUuwt)"><img src="[https://img.shields.io/badge/Join%20Discord-7289DA?logo=discord\&logoColor=white](https://img.shields.io/badge/Join%20Discord-7289DA?logo=discord&logoColor=white)" alt="Discord"></a>
+<a href="[https://github.com/getbindu/Bindu/graphs/contributors](https://github.com/getbindu/Bindu/graphs/contributors)"><img src="[https://img.shields.io/github/contributors/getbindu/Bindu](https://img.shields.io/github/contributors/getbindu/Bindu)" alt="Contributors"></a>
+</p>
 
 <br>
 
-\<p align="center"\>
-\<img src="assets/sunflower-mountains.jpeg" alt="Bindu — The Internet of Agents" width="720" /\>
-\</p\>
+<p align="center">
+<img src="assets/sunflower-mountains.jpeg" alt="Bindu — The Internet of Agents" width="720" />
+</p>
 
-\<p align="center"\>
-\<em\>"সূর্যমুখীরা যেমন আলোর দিকে মুখ ফেরায়, এজেন্টরা সেভাবেই ঝাঁকে ঝাঁকে একে অপরের সাথে সহযোগিতা করে - প্রত্যেকে স্বাধীন, তবুও একসাথে তারা মহৎ কিছু তৈরি করে।"\</em\>
-\</p\>
+<p align="center">
+<em>"সূর্যমুখীরা যেমন আলোর দিকে মুখ ফেরায়, এজেন্টরা সেভাবেই ঝাঁকে ঝাঁকে একে অপরের সাথে সহযোগিতা করে - প্রত্যেকে স্বাধীন, তবুও একসাথে তারা মহৎ কিছু তৈরি করে।"</em>
+</p>
 
 <br>
 
@@ -53,9 +53,9 @@
 
 একটি ডিস্ট্রিবিউটেড আর্কিটেকচারের (Task Manager, scheduler, storage) উপর ভিত্তি করে তৈরি Bindu যেকোনো AI framework-এর সাথে দ্রুত ডেভেলপমেন্ট এবং সহজে ইন্টিগ্রেশন করা নিশ্চিত করে। যেকোনো এজেন্ট ফ্রেমওয়ার্ককে Internet of Agents-এ যোগাযোগ, সহযোগিতা এবং বাণিজ্যের জন্য একটি সম্পূর্ণ ইন্টারঅপারেবল সার্ভিসে রূপান্তর করুন।
 
-\<p align="center"\>
-\<strong\>🌟 \<a href="[https://bindus.directory](https://bindus.directory)"\>আপনার এজেন্ট রেজিস্টার করুন\</a\> • 🌻 \<a href="[https://docs.getbindu.com](https://docs.getbindu.com)"\>ডকুমেন্টেশন\</a\> • 💬 \<a href="[https://discord.gg/3w5zuYUuwt](https://discord.gg/3w5zuYUuwt)"\>Discord কমিউনিটি\</a\>\</strong\>
-\</p\>
+<p align="center">
+<strong>🌟 <a href="[https://bindus.directory](https://bindus.directory)">আপনার এজেন্ট রেজিস্টার করুন</a> • 🌻 <a href="[https://docs.getbindu.com](https://docs.getbindu.com)">ডকুমেন্টেশন</a> • 💬 <a href="[https://discord.gg/3w5zuYUuwt](https://discord.gg/3w5zuYUuwt)">Discord কমিউনিটি</a></strong>
+</p>
 
 -----
 
@@ -63,11 +63,11 @@
 
 ## 🎥 Bindu-কে কাজ করতে দেখুন
 
-\<div align="center"\>
-\<a href="[https://www.youtube.com/watch?v=qppafMuw\_KI](https://www.youtube.com/watch?v=qppafMuw_KI)" target="\_blank"\>
-\<img src="[https://img.youtube.com/vi/qppafMuw\_KI/maxresdefault.jpg](https://img.youtube.com/vi/qppafMuw_KI/maxresdefault.jpg)" alt="Bindu Demo" width="640" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" /\>
-\</a\>
-\</div\>
+<div align="center">
+<a href="[https://www.youtube.com/watch?v=qppafMuw_KI](https://www.youtube.com/watch?v=qppafMuw_KI)" target="_blank">
+<img src="[https://img.youtube.com/vi/qppafMuw_KI/maxresdefault.jpg](https://img.youtube.com/vi/qppafMuw_KI/maxresdefault.jpg)" alt="Bindu Demo" width="640" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+</a>
+</div>
 
 <br>
 
@@ -95,8 +95,8 @@ uv --version
 
 ## 📦 ইনস্টলেশন (Installation)
 
-\<details\>
-\<summary\>\<b\>ব্যবহারকারীদের জন্য নোট (Git এবং GitHub Desktop)\</b\>\</summary\>
+<details>
+<summary><b>ব্যবহারকারীদের জন্য নোট (Git এবং GitHub Desktop)</b></summary>
 
 কিছু Windows সিস্টেমে PATH কনফিগারেশন সমস্যার কারণে ইনস্টল করার পরেও কমান্ড প্রম্পটে git কাজ নাও করতে পারে।
 
@@ -109,7 +109,7 @@ uv --version
 
 GitHub Desktop আপনাকে কমান্ড লাইন ব্যবহার না করেই ক্লোন করা, ব্রাঞ্চ ম্যানেজ করা, চেঞ্জেস কমিট করা এবং পুল রিকোয়েস্ট খোলার সুবিধা দেয়।
 
-\</details\>
+</details>
 
 ```bash
 # Bindu ইনস্টল করুন
@@ -124,8 +124,8 @@ source .venv/bin/activate  # macOS/Linux-এ
 uv sync --dev
 ```
 
-\<details\>
-\<summary\>\<b\>সাধারণ ইনস্টলেশন সমস্যা\</b\> (ক্লিক করে বিস্তারিত দেখুন)\</summary\>
+<details>
+<summary><b>সাধারণ ইনস্টলেশন সমস্যা</b> (ক্লিক করে বিস্তারিত দেখুন)</summary>
 
 <br>
 
@@ -137,7 +137,7 @@ uv sync --dev
 | `Microsoft Visual C++ required` | [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) ডাউনলোড করুন। |
 | `ModuleNotFoundError` | venv অ্যাক্টিভেট করুন এবং `uv sync --dev` চালান। |
 
-\</details\>
+</details>
 
 -----
 
@@ -157,11 +157,11 @@ uv add cookiecutter
 uvx cookiecutter https://github.com/getbindu/create-bindu-agent.git
 ```
 
-\<div align="center"\>
-\<a href="[https://youtu.be/obY1bGOoWG8?si=uEeDb0XWrtYOQTL7](https://youtu.be/obY1bGOoWG8?si=uEeDb0XWrtYOQTL7)" target="\_blank"\>
-\<img src="[https://img.youtube.com/vi/obY1bGOoWG8/maxresdefault.jpg](https://img.youtube.com/vi/obY1bGOoWG8/maxresdefault.jpg)" alt="Create Production Ready Agent" width="640" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" /\>
-\</a\>
-\</div\>
+<div align="center">
+<a href="[https://youtu.be/obY1bGOoWG8?si=uEeDb0XWrtYOQTL7](https://youtu.be/obY1bGOoWG8?si=uEeDb0XWrtYOQTL7)" target="_blank">
+<img src="[https://img.youtube.com/vi/obY1bGOoWG8/maxresdefault.jpg](https://img.youtube.com/vi/obY1bGOoWG8/maxresdefault.jpg)" alt="Create Production Ready Agent" width="640" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+</a>
+</div>
 
 আপনার লোকাল এজেন্ট এখন একটি লাইভ, সিকিউর এবং ডিসকভারেবল সার্ভিস। [আরও জানুন →](https://docs.getbindu.com/bindu/create-bindu-agent/overview)
 
@@ -242,8 +242,8 @@ python examples/beginner_zero_config_agent.py
 
 ### অপশন ৪: মিনিমাল ইকো (Echo) এজেন্ট (টেস্টিং)
 
-\<details\>
-\<summary\>\<b\>মিনিমাল উদাহরণ দেখুন\</b\> (ক্লিক করে বিস্তারিত দেখুন)\</summary\>
+<details>
+<summary><b>মিনিমাল উদাহরণ দেখুন</b> (ক্লিক করে বিস্তারিত দেখুন)</summary>
 
 ক্ষুদ্রতম কার্যকর এজেন্ট:
 
@@ -279,10 +279,10 @@ bindufy(config, handler)
 python examples/echo_agent.py
 ```
 
-\</details\>
+</details>
 
-\<details\>
-\<summary\>\<b\>curl দিয়ে এজেন্টটি পরীক্ষা করুন\</b\> (ক্লিক করে বিস্তারিত দেখুন)\</summary\>
+<details>
+<summary><b>curl দিয়ে এজেন্টটি পরীক্ষা করুন</b> (ক্লিক করে বিস্তারিত দেখুন)</summary>
 
 <br>
 
@@ -427,7 +427,7 @@ curl --location 'http://localhost:3773/' \
 }
 ```
 
-\</details\>
+</details>
 
 -----
 
@@ -456,9 +456,9 @@ curl --location 'http://localhost:3773/' \
 
 Bindu-তে `http://localhost:5173`-এ একটি চমৎকার চ্যাট ইন্টারফেস অন্তর্ভুক্ত রয়েছে। এটি চালু করতে `frontend` ফোল্ডারে যান এবং `npm run dev` কমান্ডটি চালান।
 
-\<p align="center"\>
-\<img src="assets/agent-ui.png" alt="Bindu Agent UI" width="640" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" /\>
-\</p\>
+<p align="center">
+  <img src="assets/new-ui.png" alt="Bindu Agent UI" width="640" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+</p>
 
 -----
 
@@ -524,17 +524,16 @@ NightSky এজেন্টদের ঝাঁক (swarms) পরিচালন
 
 ## 🛠️ সমর্থিত এজেন্ট ফ্রেমওয়ার্কসমূহ (Supported Agent Frameworks)
 
-Bindu হলো **framework-agnostic** এবং নিচের ফ্রেমওয়ার্কগুলোর সাথে পরীক্ষিত:
+Bindu হলো **framework-agnostic** এবং নিচের ফ্রেমওয়ার্কগুলোর সাথে পরীক্ষিত:
 
-  - **Agno**
-  - **CrewAI**
-  - **LangChain**
-  - **LlamaIndex**
-  - **FastAgent**
+- **AG2** (পূর্বে AutoGen)
+- **Agno**
+- **CrewAI**
+- **LangChain**
+- **LlamaIndex**
+- **FastAgent**
 
-আপনার প্রিয় ফ্রেমওয়ার্কের সাথে ইন্টিগ্রেশন চান? [আমাদের Discord-এ জানান](https://discord.gg/3w5zuYUuwt)\!
-
------
+আপনার প্রিয় ফ্রেমওয়ার্কের সাথে ইন্টিগ্রেশন চান? [আমাদের Discord-এ জানান](https://discord.gg/3w5zuYUuwt)!
 
 <br>
 
@@ -553,8 +552,8 @@ uv run coverage report --skip-covered --fail-under=70
 
 ## 🔧 সমস্যা সমাধান (Troubleshooting)
 
-\<details\>
-\<summary\>সাধারণ সমস্যাসমূহ\</summary\>
+<details>
+<summary>সাধারণ সমস্যাসমূহ</summary>
 
 <br>
 
@@ -581,7 +580,7 @@ uv sync --dev
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-\</details\>
+</details>
 
 -----
 
@@ -629,26 +628,26 @@ Bindu [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/)-এ�
 
 আমাদের নিবেদিত মডারেটররা একটি বন্ধুত্বপূর্ণ এবং উৎপাদনশীল কমিউনিটি বজায় রাখতে সাহায্য করেন:
 
-\<table\>
-\<tr\>
-\<td align="center"\>
-\<a href="https://github.com/raahulrahl"\>
-\<img src="https://avatars.githubusercontent.com/u/157174139?v=4" width="100px;" alt="Raahul Dutta"/\>
-\<br /\>
-\<sub\>\<b\>Raahul Dutta\</b\>\</sub\>
-\</a\>
-\<br /\>
-\</td\>
-\<td align="center"\>
-\<a href="https://github.com/Paraschamoli"\>
-\<img src="https://avatars.githubusercontent.com/u/157124537?v=4" width="100px;" alt="Paras Chamoli"/\>
-\<br /\>
-\<sub\>\<b\>Paras Chamoli\</b\>\</sub\>
-\</a\>
-\<br /\>
-\</td\>
-\</tr\>
-\</table\>
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/raahulrahl">
+<img src="https://avatars.githubusercontent.com/u/157174139?v=4" width="100px;" alt="Raahul Dutta"/>
+<br />
+<sub><b>Raahul Dutta</b></sub>
+</a>
+<br />
+</td>
+<td align="center">
+<a href="https://github.com/Paraschamoli">
+<img src="https://avatars.githubusercontent.com/u/157124537?v=4" width="100px;" alt="Paras Chamoli"/>
+<br />
+<sub><b>Paras Chamoli</b></sub>
+</a>
+<br />
+</td>
+</tr>
+</table>
 
 > মডারেটর হতে চান? [Discord](https://discord.gg/3w5zuYUuwt)-এ আমাদের সাথে যোগাযোগ করুন\!
 
@@ -708,28 +707,28 @@ Bindu [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/)-এ�
 
 -----
 
-\<p align="center"\>
-\<strong\>অ্যামস্টারডামের টিমের পক্ষ থেকে 💛 নিয়ে তৈরি \</strong\><br>
-\<em\>হ্যাপি Bindu\! 🌻🚀✨\</em\>
-\</p\>
+<p align="center">
+<strong>অ্যামস্টারডামের টিমের পক্ষ থেকে 💛 নিয়ে তৈরি </strong><br>
+<em>হ্যাপি Bindu\! 🌻🚀✨</em>
+</p>
 
-\<p align="center"\>
-\<strong\>আইডিয়া থেকে Internet of Agents মাত্র ২ মিনিটে।\</strong\><br>
-\<em\>আপনার এজেন্ট। আপনার ফ্রেমওয়ার্ক। ইউনিভার্সাল প্রোটোকল।\</em\>
-\</p\>
+<p align="center">
+<strong>আইডিয়া থেকে Internet of Agents মাত্র ২ মিনিটে।</strong><br>
+<em>আপনার এজেন্ট। আপনার ফ্রেমওয়ার্ক। ইউনিভার্সাল প্রোটোকল।</em>
+</p>
 
-\<p align="center"\>
-\<a href="[https://github.com/getbindu/Bindu](https://github.com/getbindu/Bindu)"\>⭐ GitHub-এ আমাদের স্টার দিন\</a\> •
-\<a href="[https://discord.gg/3w5zuYUuwt](https://discord.gg/3w5zuYUuwt)"\>💬 Discord-এ যোগ দিন\</a\> •
-\<a href="[https://docs.getbindu.com](https://docs.getbindu.com)"\>🌻 ডকুমেন্টেশন পড়ুন\</a\>
-\</p\>
+<p align="center">
+<a href="[https://github.com/getbindu/Bindu](https://github.com/getbindu/Bindu)">⭐ GitHub-এ আমাদের স্টার দিন</a> •
+<a href="[https://discord.gg/3w5zuYUuwt](https://discord.gg/3w5zuYUuwt)">💬 Discord-এ যোগ দিন</a> •
+<a href="[https://docs.getbindu.com](https://docs.getbindu.com)">🌻 ডকুমেন্টেশন পড়ুন</a>
+</p>
 
 <br>
 
-\<p align="center"\>
-\<img src="assets/sunflower-footer.jpeg" alt="Bindu" width="720" /\>
-\</p\>
+<p align="center">
+<img src="assets/sunflower-footer.jpeg" alt="Bindu" width="720" />
+</p>
 
-\<p align="center"\>
-\<em\>"আমরা সূর্যমুখী তত্ত্বে বিশ্বাস করি - একসাথে সোজা হয়ে দাঁড়ানো, Internet of Agents-এ আশা এবং আলো নিয়ে আসা।"\</em\>
-\</p\>
+<p align="center">
+<em>"আমরা সূর্যমুখী তত্ত্বে বিশ্বাস করি - একসাথে সোজা হয়ে দাঁড়ানো, Internet of Agents-এ আশা এবং আলো নিয়ে আসা।"</em>
+</p>
