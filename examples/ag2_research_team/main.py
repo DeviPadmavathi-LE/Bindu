@@ -17,11 +17,15 @@ from autogen import ConversableAgent, LLMConfig
 from autogen.agentchat import initiate_group_chat
 from autogen.agentchat.group.patterns import AutoPattern
 from bindu.penguin import bindufy
+from dotenv import load_dotenv
+
+load_dotenv()
 
 llm_config = LLMConfig(
     {
-        "model": os.getenv("LLM_MODEL", "gpt-4o-mini"),
-        "api_key": os.environ.get("OPENAI_API_KEY", ""),
+        "model": os.getenv("LLM_MODEL", "openai/gpt-4o-mini"),
+        "api_key": os.environ.get("OPENROUTER_API_KEY", ""),
+        "base_url": "https://openrouter.ai/api/v1",
     }
 )
 
@@ -35,11 +39,11 @@ config = {
         "any topic."
     ),
     "deployment": {
-        "url": "http://localhost:3774",
+        "url": "http://localhost:3773",
         "expose": True,
         "cors_origins": ["http://localhost:5173"],
     },
-    "skills": ["../beginner/skills/question-answering"],
+    # "skills": ["../beginner/skills/question-answering"],
 }
 
 
