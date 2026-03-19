@@ -23,7 +23,7 @@ export async function handlePaymentRequired(
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
-		
+
 		// Add auth token if available
 		if (authToken) {
 			headers['Authorization'] = `Bearer ${authToken}`;

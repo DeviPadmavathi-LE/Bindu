@@ -633,7 +633,7 @@ class CapabilityCalculator:
             else:
                 # It's an object, try to get amount attribute
                 agent_cost_str = getattr(self._x402_extension, "amount", "0")
-            
+
             agent_cost = self._parse_cost_amount(agent_cost_str)
             max_cost = self._parse_cost_amount(max_cost_amount)
 
