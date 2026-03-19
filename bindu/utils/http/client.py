@@ -99,7 +99,7 @@ class AsyncHTTPClient:
         **kwargs,
     ) -> aiohttp.ClientResponse:
         """Make an HTTP request with single attempt.
-        
+
         Retry logic is handled by decorators on public methods.
 
         Args:

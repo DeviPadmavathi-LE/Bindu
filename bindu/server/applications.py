@@ -49,7 +49,9 @@ from bindu.utils.logging import get_logger
 logger = get_logger("bindu.server.applications")
 
 # Constants
-UNKNOWN_AUTH_PROVIDER_ERROR = "Unknown authentication provider: '{provider}'. Supported providers: {supported}"
+UNKNOWN_AUTH_PROVIDER_ERROR = (
+    "Unknown authentication provider: '{provider}'. Supported providers: {supported}"
+)
 TASKMANAGER_NOT_INITIALIZED_ERROR = "TaskManager was not properly initialized."
 
 
@@ -396,11 +398,16 @@ class BinduApplication(Starlette):
 
     def _apply_sentry_config(self, config: SentryConfig) -> None:
         """Apply Sentry configuration to app settings.
-        
+
         Args:
             config: Sentry configuration to apply
+
+        Note:
+            This method should only be called after verifying config.dsn is not None
         """
         app_settings.sentry.enabled = True
+        # Type narrowing: dsn is checked before calling this method (line 361)
+        assert config.dsn is not None, "Sentry DSN must be provided"
         app_settings.sentry.dsn = config.dsn
         app_settings.sentry.environment = config.environment
         if config.release:
@@ -413,12 +420,12 @@ class BinduApplication(Starlette):
 
     def _initialize_sentry(self, source: str = "") -> None:
         """Initialize Sentry error tracking.
-        
+
         Args:
             source: Optional source description for logging (e.g., 'environment variables')
         """
         from bindu.observability import init_sentry
-        
+
         sentry_initialized = init_sentry()
         if sentry_initialized:
             source_msg = f" from {source}" if source else " successfully"
@@ -626,9 +633,7 @@ class BinduApplication(Starlette):
         else:
             logger.error(f"Unknown authentication provider: {provider}")
             raise ValueError(
-                UNKNOWN_AUTH_PROVIDER_ERROR.format(
-                    provider=provider, supported="hydra"
-                )
+                UNKNOWN_AUTH_PROVIDER_ERROR.format(provider=provider, supported="hydra")
             )
 
     def _setup_payment_session_manager(

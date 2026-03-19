@@ -12,7 +12,7 @@ class HTTPError(Exception):
 
     def __init__(self, message: str, status: int | None = None, url: str | None = None):
         """Initialize HTTP error with message and optional status/URL.
-        
+
         Args:
             message: Error message
             status: Optional HTTP status code

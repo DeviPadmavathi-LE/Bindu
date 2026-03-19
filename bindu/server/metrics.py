@@ -154,10 +154,10 @@ class PrometheusMetrics:
     @staticmethod
     def _format_bucket(bucket: float) -> str:
         """Format bucket value for Prometheus output.
-        
+
         Args:
             bucket: Bucket upper bound value
-            
+
         Returns:
             Formatted bucket string ('+Inf' for infinity, otherwise string representation)
         """
@@ -168,7 +168,7 @@ class PrometheusMetrics:
         lines: list[str], metric_name: str, help_text: str, metric_type: str
     ) -> None:
         """Add Prometheus metric header lines.
-        
+
         Args:
             lines: List to append header lines to
             metric_name: Name of the metric
@@ -211,7 +211,10 @@ class PrometheusMetrics:
             # HTTP request duration
             lines.append("")
             self._add_metric_header(
-                lines, "http_request_duration_seconds", "HTTP request latency", "histogram"
+                lines,
+                "http_request_duration_seconds",
+                "HTTP request latency",
+                "histogram",
             )
             for bucket in self._duration_buckets:
                 count = self._duration_counts[bucket]
@@ -237,7 +240,10 @@ class PrometheusMetrics:
             if self._agent_tasks_completed:
                 lines.append("")
                 self._add_metric_header(
-                    lines, "agent_tasks_completed_total", "Total completed tasks", "counter"
+                    lines,
+                    "agent_tasks_completed_total",
+                    "Total completed tasks",
+                    "counter",
                 )
                 for (agent_id, status), count in sorted(
                     self._agent_tasks_completed.items()
@@ -250,7 +256,10 @@ class PrometheusMetrics:
             if self._task_duration_total_count:
                 lines.append("")
                 self._add_metric_header(
-                    lines, "task_duration_seconds", "Task execution duration", "histogram"
+                    lines,
+                    "task_duration_seconds",
+                    "Task execution duration",
+                    "histogram",
                 )
 
                 # Group by agent_id and status for histogram output
@@ -293,7 +302,10 @@ class PrometheusMetrics:
             if self._http_request_size_count > 0:
                 lines.append("")
                 self._add_metric_header(
-                    lines, "http_request_size_bytes", "HTTP request body size", "summary"
+                    lines,
+                    "http_request_size_bytes",
+                    "HTTP request body size",
+                    "summary",
                 )
                 lines.append(
                     f"http_request_size_bytes_sum {self._http_request_size_sum:.0f}"
@@ -306,7 +318,10 @@ class PrometheusMetrics:
             if self._http_response_size_count > 0:
                 lines.append("")
                 self._add_metric_header(
-                    lines, "http_response_size_bytes", "HTTP response body size", "summary"
+                    lines,
+                    "http_response_size_bytes",
+                    "HTTP response body size",
+                    "summary",
                 )
                 lines.append(
                     f"http_response_size_bytes_sum {self._http_response_size_sum:.0f}"

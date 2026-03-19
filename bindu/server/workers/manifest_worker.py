@@ -57,7 +57,9 @@ logger = get_logger("bindu.server.workers.manifest_worker")
 
 # Constants
 TASK_NOT_FOUND_ERROR = "Task {task_id} not found"
-INVALID_TERMINAL_STATE_ERROR = "Invalid terminal state '{state}'. Must be one of: {terminal_states}"
+INVALID_TERMINAL_STATE_ERROR = (
+    "Invalid terminal state '{state}'. Must be one of: {terminal_states}"
+)
 
 
 @dataclass
@@ -117,7 +119,7 @@ class ManifestWorker(Worker):
         # Step 1: Load and validate task
         task = await self.storage.load_task(params["task_id"])
         if task is None:
-            raise ValueError(TASK_NOT_FOUND_ERROR.format(task_id=params['task_id']))
+            raise ValueError(TASK_NOT_FOUND_ERROR.format(task_id=params["task_id"]))
 
         # Extract payment context if available (from x402 middleware)
         payment_context = params.get("payment_context")
@@ -220,7 +222,9 @@ class ManifestWorker(Worker):
         except Exception as e:
             # Handle task failure with error message
             # Add span event for failure
-            self._add_state_change_event(from_state="working", to_state="failed", error=str(e))
+            self._add_state_change_event(
+                from_state="working", to_state="failed", error=str(e)
+            )
             await self._handle_task_failure(task, str(e))
             raise
         return
@@ -340,7 +344,7 @@ class ManifestWorker(Worker):
         error: str | None = None,
     ) -> None:
         """Add state change event to current OpenTelemetry span.
-        
+
         Args:
             to_state: Target state
             from_state: Optional source state
@@ -364,7 +368,7 @@ class ManifestWorker(Worker):
         **extra_context: Any,
     ) -> None:
         """Log notification delivery errors.
-        
+
         Args:
             notification_type: Type of notification (e.g., 'Lifecycle', 'Artifact')
             task_id: Task identifier
@@ -547,7 +551,6 @@ class ManifestWorker(Worker):
         Returns:
             Metadata dict containing settlement information to attach to task
         """
-
         try:
             payment_payload = payment_context["payment_payload"]
             payment_requirements = payment_context["payment_requirements"]
@@ -604,9 +607,7 @@ class ManifestWorker(Worker):
                         await result
             except Exception as e:
                 # Log but don't disrupt task execution on notification errors
-                self._log_notification_error(
-                    "Artifact", task_id, context_id, e
-                )
+                self._log_notification_error("Artifact", task_id, context_id, e)
 
     async def _notify_lifecycle(
         self, task_id: UUID, context_id: UUID, state: str, final: bool

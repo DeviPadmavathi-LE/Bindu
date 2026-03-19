@@ -154,15 +154,15 @@ class Worker(ABC):
     @staticmethod
     def _normalize_uuid(value: Any) -> Any:
         """Normalize UUID value from string or UUID object.
-        
+
         Args:
             value: UUID value (string, UUID object, or other)
-            
+
         Returns:
             UUID object if input is string or UUID, otherwise returns input as-is
         """
         from uuid import UUID
-        
+
         if isinstance(value, str):
             return UUID(value)
         return value
