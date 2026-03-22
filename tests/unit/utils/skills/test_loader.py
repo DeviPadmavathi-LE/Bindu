@@ -10,6 +10,8 @@ from bindu.utils.skills.loader import (
     load_skill_from_directory,
     load_skills,
     find_skill_by_id,
+    _parse_markdown_frontmatter,
+    _build_skill_from_data,
 )
 
 
@@ -61,12 +63,12 @@ class TestLoadSkillFromDirectory:
         with pytest.raises(FileNotFoundError, match="Skill directory not found"):
             load_skill_from_directory("nonexistent", tmp_path)
 
-    def test_load_skill_missing_yaml(self, tmp_path):
-        """Test loading from directory without skill.yaml raises error."""
+    def test_load_skill_missing_yaml_and_md(self, tmp_path):
+        """Test loading from directory without skill.yaml or SKILL.md raises error."""
         skill_dir = tmp_path / "empty_skill"
         skill_dir.mkdir()
 
-        with pytest.raises(FileNotFoundError, match="skill.yaml not found"):
+        with pytest.raises(FileNotFoundError, match="No skill definition found"):
             load_skill_from_directory(skill_dir, tmp_path)
 
     def test_load_skill_invalid_yaml(self, tmp_path):
@@ -148,6 +150,240 @@ class TestLoadSkillFromDirectory:
         assert "documentation_content" in skill
         assert "name: Doc Skill" in skill["documentation_content"]
 
+    def test_load_skill_stores_raw_yaml_content(self, tmp_path):
+        """Test that skill stores the full raw YAML file content."""
+        skill_dir = tmp_path / "raw_skill"
+        skill_dir.mkdir()
+
+        raw_yaml = "name: Raw Skill\ndescription: Testing raw content\ntags:\n  - raw\n"
+        skill_yaml = skill_dir / "skill.yaml"
+        skill_yaml.write_text(raw_yaml)
+
+        skill = load_skill_from_directory(skill_dir, tmp_path)
+
+        assert skill["documentation_content"] == raw_yaml
+
+
+class TestLoadSkillFromMarkdown:
+    """Test loading skills from SKILL.md files."""
+
+    def test_load_skill_from_md_only(self, tmp_path):
+        """Test loading a skill when only SKILL.md exists."""
+        skill_dir = tmp_path / "md_skill"
+        skill_dir.mkdir()
+
+        md_content = """---
+name: MD Skill
+description: A skill defined in markdown
+tags:
+  - markdown
+  - test
+---
+
+# MD Skill
+
+This is the rich documentation body.
+
+## Usage
+
+Use this skill for testing.
+"""
+        (skill_dir / "SKILL.md").write_text(md_content)
+
+        skill = load_skill_from_directory(skill_dir, tmp_path)
+
+        assert skill["name"] == "MD Skill"
+        assert skill["description"] == "A skill defined in markdown"
+        assert skill["tags"] == ["markdown", "test"]
+        assert skill["documentation_content"] == md_content
+        assert "# MD Skill" in skill["markdown_content"]
+        assert "## Usage" in skill["markdown_content"]
+
+    def test_load_skill_md_with_all_frontmatter_fields(self, tmp_path):
+        """Test SKILL.md with full frontmatter metadata."""
+        skill_dir = tmp_path / "full_md_skill"
+        skill_dir.mkdir()
+
+        md_content = """---
+id: full-md-skill
+name: Full MD Skill
+description: Complete metadata in frontmatter
+version: "2.0.0"
+author: test@example.com
+tags:
+  - complete
+input_modes:
+  - text/plain
+  - application/json
+output_modes:
+  - text/plain
+examples:
+  - "Example query 1"
+  - "Example query 2"
+---
+
+# Full MD Skill Documentation
+
+Rich documentation here.
+"""
+        (skill_dir / "SKILL.md").write_text(md_content)
+
+        skill = load_skill_from_directory(skill_dir, tmp_path)
+
+        assert skill["id"] == "full-md-skill"
+        assert skill["name"] == "Full MD Skill"
+        assert skill["version"] == "2.0.0"
+        assert skill["author"] == "test@example.com"
+        assert skill["input_modes"] == ["text/plain", "application/json"]
+        assert skill["examples"] == ["Example query 1", "Example query 2"]
+
+    def test_load_skill_md_missing_frontmatter(self, tmp_path):
+        """Test SKILL.md without frontmatter raises error."""
+        skill_dir = tmp_path / "no_frontmatter"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text("# Just markdown\nNo frontmatter here.")
+
+        with pytest.raises(ValueError, match="must start with YAML frontmatter"):
+            load_skill_from_directory(skill_dir, tmp_path)
+
+    def test_load_skill_md_unclosed_frontmatter(self, tmp_path):
+        """Test SKILL.md with unclosed frontmatter raises error."""
+        skill_dir = tmp_path / "unclosed_fm"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text("---\nname: Test\ndescription: Test\n")
+
+        with pytest.raises(ValueError, match="frontmatter is not closed"):
+            load_skill_from_directory(skill_dir, tmp_path)
+
+    def test_load_skill_md_invalid_frontmatter_yaml(self, tmp_path):
+        """Test SKILL.md with invalid YAML in frontmatter raises error."""
+        skill_dir = tmp_path / "bad_fm"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text("---\ninvalid: yaml: [\n---\n# Body")
+
+        with pytest.raises(ValueError, match="Invalid YAML in SKILL.md frontmatter"):
+            load_skill_from_directory(skill_dir, tmp_path)
+
+    def test_load_skill_md_missing_name(self, tmp_path):
+        """Test SKILL.md without name in frontmatter raises error."""
+        skill_dir = tmp_path / "no_name"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text(
+            "---\ndescription: No name field\n---\n# Body"
+        )
+
+        with pytest.raises(KeyError, match="name"):
+            load_skill_from_directory(skill_dir, tmp_path)
+
+    def test_load_skill_md_missing_description(self, tmp_path):
+        """Test SKILL.md without description in frontmatter raises error."""
+        skill_dir = tmp_path / "no_desc"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text("---\nname: No Description\n---\n# Body")
+
+        with pytest.raises(KeyError, match="description"):
+            load_skill_from_directory(skill_dir, tmp_path)
+
+    def test_load_skill_md_empty_body(self, tmp_path):
+        """Test SKILL.md with frontmatter but empty body."""
+        skill_dir = tmp_path / "empty_body"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: Empty Body\ndescription: No markdown body\n---\n"
+        )
+
+        skill = load_skill_from_directory(skill_dir, tmp_path)
+
+        assert skill["name"] == "Empty Body"
+        assert "markdown_content" not in skill
+
+    def test_load_skill_md_frontmatter_not_dict(self, tmp_path):
+        """Test SKILL.md with non-dict frontmatter raises error."""
+        skill_dir = tmp_path / "list_fm"
+        skill_dir.mkdir()
+
+        (skill_dir / "SKILL.md").write_text("---\n- item1\n- item2\n---\n# Body")
+
+        with pytest.raises(ValueError, match="must be a YAML mapping"):
+            load_skill_from_directory(skill_dir, tmp_path)
+
+
+class TestLoadSkillYamlAndMdCombined:
+    """Test loading skills when both skill.yaml and SKILL.md exist."""
+
+    def test_yaml_primary_md_enriches(self, tmp_path):
+        """Test that skill.yaml is primary and SKILL.md adds markdown_content."""
+        skill_dir = tmp_path / "combined_skill"
+        skill_dir.mkdir()
+
+        # skill.yaml has the metadata
+        skill_data = {
+            "name": "Combined Skill",
+            "description": "From YAML",
+            "tags": ["yaml"],
+            "version": "1.0.0",
+        }
+        with open(skill_dir / "skill.yaml", "w") as f:
+            yaml.dump(skill_data, f)
+
+        # SKILL.md has rich documentation
+        md_content = """---
+name: Combined Skill
+description: From MD (ignored since yaml takes priority)
+---
+
+# Combined Skill
+
+This rich documentation comes from SKILL.md.
+
+## Detailed Usage
+
+Step-by-step instructions here.
+"""
+        (skill_dir / "SKILL.md").write_text(md_content)
+
+        skill = load_skill_from_directory(skill_dir, tmp_path)
+
+        # Metadata comes from YAML
+        assert skill["name"] == "Combined Skill"
+        assert skill["description"] == "From YAML"
+        assert skill["tags"] == ["yaml"]
+
+        # documentation_content is the raw YAML
+        assert "name: Combined Skill" in skill["documentation_content"]
+
+        # markdown_content is the SKILL.md body
+        assert "# Combined Skill" in skill["markdown_content"]
+        assert "## Detailed Usage" in skill["markdown_content"]
+
+    def test_yaml_primary_md_malformed_gracefully_handled(self, tmp_path):
+        """Test that malformed SKILL.md is gracefully skipped when skill.yaml exists."""
+        skill_dir = tmp_path / "yaml_with_bad_md"
+        skill_dir.mkdir()
+
+        skill_data = {
+            "name": "YAML Primary",
+            "description": "SKILL.md is broken but that is ok",
+        }
+        with open(skill_dir / "skill.yaml", "w") as f:
+            yaml.dump(skill_data, f)
+
+        # Malformed SKILL.md (no frontmatter)
+        (skill_dir / "SKILL.md").write_text("Just plain markdown, no frontmatter.")
+
+        skill = load_skill_from_directory(skill_dir, tmp_path)
+
+        # Should still load from YAML
+        assert skill["name"] == "YAML Primary"
+        # Should NOT have markdown_content since MD was malformed
+        assert "markdown_content" not in skill
+
 
 class TestLoadSkills:
     """Test loading multiple skills."""
@@ -203,6 +439,20 @@ class TestLoadSkills:
         assert skills[0]["name"] == "File Skill"
         assert skills[1]["name"] == "Inline Skill"
 
+    def test_load_md_based_skills(self, tmp_path):
+        """Test loading skills from SKILL.md files via load_skills."""
+        skill_dir = tmp_path / "md_skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: MD Skill\ndescription: From markdown\n---\n# Docs\n"
+        )
+
+        skills = load_skills(["md_skill"], tmp_path)
+
+        assert len(skills) == 1
+        assert skills[0]["name"] == "MD Skill"
+        assert skills[0]["description"] == "From markdown"
+
     def test_load_inline_skill_missing_name(self, tmp_path):
         """Test that inline skill without name raises error."""
         inline_skills: list[dict[str, Any]] = [{"description": "No name"}]
@@ -250,6 +500,105 @@ class TestLoadSkills:
         """Test that file loading errors are raised."""
         with pytest.raises(FileNotFoundError):
             load_skills(["nonexistent_skill"], tmp_path)
+
+
+class TestParseMarkdownFrontmatter:
+    """Test the markdown frontmatter parser directly."""
+
+    def test_basic_frontmatter(self):
+        """Test parsing basic frontmatter."""
+        content = "---\nname: Test\ndescription: A test\n---\n# Body"
+        frontmatter, body = _parse_markdown_frontmatter(content)
+
+        assert frontmatter["name"] == "Test"
+        assert frontmatter["description"] == "A test"
+        assert body == "# Body"
+
+    def test_frontmatter_with_rich_body(self):
+        """Test parsing frontmatter with rich markdown body."""
+        content = """---
+name: Rich
+description: Rich content
+---
+
+# Title
+
+Paragraph with **bold** and *italic*.
+
+## Section
+
+- List item 1
+- List item 2
+"""
+        frontmatter, body = _parse_markdown_frontmatter(content)
+
+        assert frontmatter["name"] == "Rich"
+        assert "# Title" in body
+        assert "## Section" in body
+        assert "- List item 1" in body
+
+    def test_frontmatter_with_complex_yaml(self):
+        """Test parsing frontmatter with complex YAML structures."""
+        content = """---
+name: Complex
+description: Complex frontmatter
+tags:
+  - tag1
+  - tag2
+capabilities_detail:
+  search:
+    supported: true
+---
+
+# Body
+"""
+        frontmatter, body = _parse_markdown_frontmatter(content)
+
+        assert frontmatter["tags"] == ["tag1", "tag2"]
+        assert frontmatter["capabilities_detail"]["search"]["supported"] is True
+
+    def test_no_frontmatter_raises(self):
+        """Test that missing frontmatter raises ValueError."""
+        with pytest.raises(ValueError, match="must start with YAML frontmatter"):
+            _parse_markdown_frontmatter("# Just markdown")
+
+    def test_unclosed_frontmatter_raises(self):
+        """Test that unclosed frontmatter raises ValueError."""
+        with pytest.raises(ValueError, match="not closed"):
+            _parse_markdown_frontmatter("---\nname: Test\n")
+
+    def test_empty_body(self):
+        """Test frontmatter with empty body."""
+        content = "---\nname: Test\ndescription: Test\n---\n"
+        frontmatter, body = _parse_markdown_frontmatter(content)
+
+        assert frontmatter["name"] == "Test"
+        assert body == ""
+
+
+class TestBuildSkillFromData:
+    """Test the skill builder helper."""
+
+    def test_minimal_skill(self):
+        """Test building skill with minimal data."""
+        data = {"name": "Test", "description": "A test skill"}
+        skill = _build_skill_from_data(data)
+
+        assert skill["id"] == "Test"
+        assert skill["name"] == "Test"
+        assert skill["tags"] == []
+        assert skill["input_modes"] == ["text/plain"]
+        assert skill["output_modes"] == ["text/plain"]
+
+    def test_missing_name_raises(self):
+        """Test that missing name raises KeyError."""
+        with pytest.raises(KeyError, match="name"):
+            _build_skill_from_data({"description": "No name"})
+
+    def test_missing_description_raises(self):
+        """Test that missing description raises KeyError."""
+        with pytest.raises(KeyError, match="description"):
+            _build_skill_from_data({"name": "No desc"})
 
 
 class TestFindSkillById:

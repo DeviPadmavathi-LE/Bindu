@@ -1764,9 +1764,19 @@ class Skill(TypedDict):
     """
 
     documentation_content: NotRequired[str]
-    """Full content of the SKILL.md file.
+    """Full raw content of the skill definition file (skill.yaml or SKILL.md).
 
-    Loaded at runtime for orchestrator discovery and agent selection.
+    Loaded at runtime so the skill is self-contained and can be transmitted
+    over the network (e.g. via gRPC) without needing filesystem access.
+    """
+
+    markdown_content: NotRequired[str]
+    """Rich markdown documentation body from SKILL.md (excluding frontmatter).
+
+    When a skill is defined via SKILL.md, this contains the markdown body
+    after the YAML frontmatter. When both skill.yaml and SKILL.md exist,
+    this contains the SKILL.md body for rich documentation while
+    documentation_content holds the raw skill.yaml content.
     """
 
     capabilities_detail: NotRequired[dict[str, Any]]
@@ -1803,6 +1813,9 @@ class Skill(TypedDict):
 
     version: NotRequired[str]
     """Skill version for compatibility tracking."""
+
+    author: NotRequired[str]
+    """Author of the skill (e.g. email or name)."""
 
     allowed_tools: NotRequired[list[str]]
     """List of tools/capabilities this skill is allowed to use.
