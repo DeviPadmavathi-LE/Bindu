@@ -15,7 +15,8 @@ import * as path from "path";
 import type { ChatMessage, HandlerResponse, MessageHandler } from "./types";
 
 // Load proto definition
-const PROTO_PATH = path.resolve(__dirname, "../../proto/agent_handler.proto");
+// Resolve proto path relative to the package root (works from both src/ and dist/)
+const PROTO_PATH = path.resolve(__dirname, "..", "proto", "agent_handler.proto");
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
