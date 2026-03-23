@@ -187,3 +187,115 @@ class TestGrpcAgentClient:
         """Test close is safe when not connected."""
         client = GrpcAgentClient("localhost:50052")
         client.close()  # Should not raise
+
+    def test_init_streaming_mode(self):
+        """Test client can be initialized in streaming mode."""
+        client = GrpcAgentClient("localhost:50052", timeout=15.0, use_streaming=True)
+        assert client._use_streaming is True
+        assert "streaming" in repr(client)
+
+    def test_init_unary_mode_default(self):
+        """Test client defaults to unary mode."""
+        client = GrpcAgentClient("localhost:50052")
+        assert client._use_streaming is False
+        assert "unary" in repr(client)
+
+    @patch("bindu.grpc.client.grpc.insecure_channel")
+    @patch("bindu.grpc.client.agent_handler_pb2_grpc.AgentHandlerStub")
+    def test_streaming_response_returns_generator(self, mock_stub_class, mock_channel):
+        """Test that streaming mode returns a generator (has __next__)."""
+        mock_stub = MagicMock()
+        mock_stub_class.return_value = mock_stub
+
+        # Simulate a streaming response (iterable of HandleResponse)
+        mock_stub.HandleMessagesStream.return_value = iter(
+            [
+                agent_handler_pb2.HandleResponse(
+                    content="chunk 1", state="", is_final=False
+                ),
+                agent_handler_pb2.HandleResponse(
+                    content="chunk 2", state="", is_final=False
+                ),
+                agent_handler_pb2.HandleResponse(
+                    content="final answer", state="", is_final=True
+                ),
+            ]
+        )
+
+        client = GrpcAgentClient("localhost:50052", use_streaming=True)
+        result = client([{"role": "user", "content": "Hello"}])
+
+        # Result should be a generator (has __next__)
+        assert hasattr(result, "__next__")
+
+        # Drain the generator — simulates what ResultProcessor.collect_results() does
+        chunks = list(result)
+        assert len(chunks) == 3
+        assert chunks[0] == "chunk 1"
+        assert chunks[1] == "chunk 2"
+        assert chunks[2] == "final answer"
+
+    @patch("bindu.grpc.client.grpc.insecure_channel")
+    @patch("bindu.grpc.client.agent_handler_pb2_grpc.AgentHandlerStub")
+    def test_streaming_response_with_state_transition(
+        self, mock_stub_class, mock_channel
+    ):
+        """Test streaming where final chunk has a state transition."""
+        mock_stub = MagicMock()
+        mock_stub_class.return_value = mock_stub
+
+        mock_stub.HandleMessagesStream.return_value = iter(
+            [
+                agent_handler_pb2.HandleResponse(
+                    content="thinking...", state="", is_final=False
+                ),
+                agent_handler_pb2.HandleResponse(
+                    content="",
+                    state="input-required",
+                    prompt="What format?",
+                    is_final=True,
+                ),
+            ]
+        )
+
+        client = GrpcAgentClient("localhost:50052", use_streaming=True)
+        result = client([{"role": "user", "content": "Process data"}])
+
+        chunks = list(result)
+        assert len(chunks) == 2
+        assert chunks[0] == "thinking..."
+        assert isinstance(chunks[1], dict)
+        assert chunks[1]["state"] == "input-required"
+        assert chunks[1]["prompt"] == "What format?"
+
+    @patch("bindu.grpc.client.grpc.insecure_channel")
+    @patch("bindu.grpc.client.agent_handler_pb2_grpc.AgentHandlerStub")
+    def test_streaming_calls_correct_rpc(self, mock_stub_class, mock_channel):
+        """Test streaming mode calls HandleMessagesStream, not HandleMessages."""
+        mock_stub = MagicMock()
+        mock_stub_class.return_value = mock_stub
+        mock_stub.HandleMessagesStream.return_value = iter([])
+
+        client = GrpcAgentClient("localhost:50052", use_streaming=True)
+        result = client([{"role": "user", "content": "Hi"}])
+        # Drain the generator to trigger the call
+        list(result)
+
+        mock_stub.HandleMessagesStream.assert_called_once()
+        mock_stub.HandleMessages.assert_not_called()
+
+    @patch("bindu.grpc.client.grpc.insecure_channel")
+    @patch("bindu.grpc.client.agent_handler_pb2_grpc.AgentHandlerStub")
+    def test_unary_calls_correct_rpc(self, mock_stub_class, mock_channel):
+        """Test unary mode calls HandleMessages, not HandleMessagesStream."""
+        mock_stub = MagicMock()
+        mock_stub_class.return_value = mock_stub
+        mock_stub.HandleMessages.return_value = agent_handler_pb2.HandleResponse(
+            content="ok", state=""
+        )
+
+        client = GrpcAgentClient("localhost:50052", use_streaming=False)
+        client([{"role": "user", "content": "Hi"}])
+
+        mock_stub.HandleMessages.assert_called_once()
+        mock_stub.HandleMessagesStream.assert_not_called()

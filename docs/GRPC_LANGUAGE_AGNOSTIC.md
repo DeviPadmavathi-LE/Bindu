@@ -1,5 +1,14 @@
 # gRPC Language-Agnostic Agent Support
 
+> **📁 This documentation has been reorganized!**
+> The content below is preserved for reference, but the **new structured documentation** is at:
+> - **[docs/grpc/](./grpc/)** - Main documentation hub
+> - **[docs/grpc/api-reference.md](./grpc/api-reference.md)** - Complete API reference
+> - **[docs/grpc/client.md](./grpc/client.md)** - GrpcAgentClient implementation
+> - **[docs/grpc/limitations.md](./grpc/limitations.md)** - Known limitations and gaps
+
+---
+
 Bindu's gRPC adapter enables agents written in **any programming language** — TypeScript, Kotlin, Rust, Go, or any language with gRPC support — to transform themselves into full Bindu microservices with DID identity, A2A protocol, x402 payments, scheduling, and storage.
 
 The gRPC layer is the bridge between the language-agnostic developer world and the Python-powered Bindu core. Developers call `bindufy()` from their language SDK, and the gRPC adapter handles everything behind the scenes.
@@ -69,7 +78,7 @@ The core calls this service on the SDK whenever a task needs to be executed.
 | RPC Method | Direction | Purpose |
 |-----------|-----------|---------|
 | `HandleMessages` | Core → SDK | Execute the developer's handler with conversation history. This is called every time an A2A request arrives. |
-| `HandleMessagesStream` | Core → SDK | Same as HandleMessages but with server-side streaming (proto-defined, implementation pending). |
+| `HandleMessagesStream` | Core → SDK | ⚠️ **NOT IMPLEMENTED** - Defined in proto but `GrpcAgentClient` doesn't support streaming. See [limitations](./grpc/limitations.md). |
 | `GetCapabilities` | Core → SDK | Query what the agent supports (skills, streaming, etc.). |
 | `HealthCheck` | Core → SDK | Verify the SDK process is responsive. |
 
@@ -368,19 +377,190 @@ agents = registry.list_agents()
 registry.unregister(agent_id)
 ```
 
-## Testing gRPC with Postman
+## Testing gRPC
 
-### Setup
+### Prerequisites
 
-1. Open Postman → **New** → **gRPC**
-2. Enter URL: `localhost:3774`
-3. Import proto: `proto/agent_handler.proto`
+Start the Bindu core with gRPC enabled:
 
-### Test Heartbeat
+```bash
+cd /path/to/Bindu
+uv run bindu serve --grpc
+```
 
-- Service: `bindu.grpc.BinduService`
-- Method: `Heartbeat`
-- Body:
+You should see:
+
+```
+INFO  gRPC server started on 0.0.0.0:3774
+INFO  Waiting for SDK agent registrations...
+```
+
+Leave this terminal running. Open a new terminal for the tests below.
+
+### Option A: Testing with grpcurl (Command Line)
+
+Install grpcurl:
+
+```bash
+brew install grpcurl
+```
+
+#### 1. List available services
+
+```bash
+grpcurl -plaintext \
+  -import-path /path/to/Bindu/proto \
+  -proto agent_handler.proto \
+  localhost:3774 list
+```
+
+**Expected output:**
+
+```
+bindu.grpc.AgentHandler
+bindu.grpc.BinduService
+```
+
+#### 2. List methods in BinduService
+
+```bash
+grpcurl -plaintext \
+  -import-path /path/to/Bindu/proto \
+  -proto agent_handler.proto \
+  localhost:3774 list bindu.grpc.BinduService
+```
+
+**Expected output:**
+
+```
+bindu.grpc.BinduService.Heartbeat
+bindu.grpc.BinduService.RegisterAgent
+bindu.grpc.BinduService.UnregisterAgent
+```
+
+#### 3. Test Heartbeat
+
+```bash
+grpcurl -plaintext -emit-defaults \
+  -proto '/path/to/Bindu/proto/agent_handler.proto' \
+  -import-path '/path/to/Bindu/proto' \
+  -d '{"agent_id": "test-123", "timestamp": 1711234567890}' \
+  'localhost:3774' \
+  bindu.grpc.BinduService.Heartbeat
+```
+
+**Expected response:**
+
+```json
+{
+  "acknowledged": false,
+  "server_timestamp": "1774280770851"
+}
+```
+
+`acknowledged: false` is correct — no agent with ID "test-123" is registered yet. The response confirms the gRPC server is alive and processing requests.
+
+#### 4. Test RegisterAgent (Full bindufy over gRPC)
+
+```bash
+grpcurl -plaintext -emit-defaults \
+  -proto '/path/to/Bindu/proto/agent_handler.proto' \
+  -import-path '/path/to/Bindu/proto' \
+  -d '{
+    "config_json": "{\"author\":\"test@example.com\",\"name\":\"grpc-test-agent\",\"description\":\"Testing gRPC registration\",\"deployment\":{\"url\":\"http://localhost:3773\",\"expose\":true}}",
+    "skills": [],
+    "grpc_callback_address": "localhost:50052"
+  }' \
+  'localhost:3774' \
+  bindu.grpc.BinduService.RegisterAgent
+```
+
+**Expected response:**
+
+```json
+{
+  "success": true,
+  "agentId": "91547067-c183-e0fd-c150-27a3ca4135ed",
+  "did": "did:bindu:test_at_example_com:grpc-test-agent:91547067-c183-e0fd-c150-27a3ca4135ed",
+  "agentUrl": "http://localhost:3773",
+  "error": ""
+}
+```
+
+This confirms the **full bindufy flow** ran successfully over gRPC:
+
+| Step | Status |
+|------|--------|
+| Config validation | ✅ Passed |
+| Agent ID generation (SHA256 of author+name) | ✅ `91547067...` |
+| DID creation (Ed25519 keys) | ✅ `did:bindu:test_at_example_com:...` |
+| Manifest creation with GrpcAgentClient | ✅ Handler points to `localhost:50052` |
+| A2A HTTP server started | ✅ Running on `http://localhost:3773` |
+
+#### 5. Verify the A2A server is alive
+
+After a successful RegisterAgent, verify the HTTP server is running:
+
+```bash
+curl -s http://localhost:3773/.well-known/agent.json | python3 -m json.tool
+```
+
+**Expected:** Full agent card with DID, skills, capabilities — identical to a Python-bindufied agent.
+
+#### 6. Test Heartbeat again (now with registered agent)
+
+```bash
+grpcurl -plaintext -emit-defaults \
+  -proto '/path/to/Bindu/proto/agent_handler.proto' \
+  -import-path '/path/to/Bindu/proto' \
+  -d '{"agent_id": "91547067-c183-e0fd-c150-27a3ca4135ed", "timestamp": 1711234567890}' \
+  'localhost:3774' \
+  bindu.grpc.BinduService.Heartbeat
+```
+
+**Expected response:**
+
+```json
+{
+  "acknowledged": true,
+  "server_timestamp": "1774280800000"
+}
+```
+
+`acknowledged: true` — the agent is registered and the heartbeat was recorded.
+
+#### 7. Test UnregisterAgent
+
+```bash
+grpcurl -plaintext -emit-defaults \
+  -proto '/path/to/Bindu/proto/agent_handler.proto' \
+  -import-path '/path/to/Bindu/proto' \
+  -d '{"agent_id": "91547067-c183-e0fd-c150-27a3ca4135ed"}' \
+  'localhost:3774' \
+  bindu.grpc.BinduService.UnregisterAgent
+```
+
+#### 8. Clean up ports
+
+```bash
+lsof -ti:3773 -ti:3774 | xargs kill 2>/dev/null
+```
+
+### Option B: Testing with Postman
+
+#### Setup
+
+1. Open Postman
+2. Click **+** (new tab) → change the dropdown from **HTTP** to **gRPC**
+3. Enter URL: `localhost:3774`
+4. Click **Import .proto file** → select `proto/agent_handler.proto`
+5. The method dropdown will show all available RPCs
+
+#### Test Heartbeat
+
+1. Select method: `bindu.grpc.BinduService/Heartbeat`
+2. In the **Message** tab, paste:
+
 ```json
 {
   "agent_id": "test-123",
@@ -388,19 +568,134 @@ registry.unregister(agent_id)
 }
 ```
 
-### Test RegisterAgent
+3. Click **Invoke**
+4. Verify response shows `acknowledged` and `server_timestamp`
 
-- Method: `RegisterAgent`
-- Body:
+#### Test RegisterAgent
+
+1. Select method: `bindu.grpc.BinduService/RegisterAgent`
+2. In the **Message** tab, paste:
+
 ```json
 {
-  "config_json": "{\"author\":\"test@example.com\",\"name\":\"postman-agent\",\"description\":\"Test\",\"deployment\":{\"url\":\"http://localhost:3773\",\"expose\":true}}",
+  "config_json": "{\"author\":\"test@example.com\",\"name\":\"postman-agent\",\"description\":\"Testing from Postman\",\"deployment\":{\"url\":\"http://localhost:3773\",\"expose\":true}}",
   "skills": [],
   "grpc_callback_address": "localhost:50052"
 }
 ```
 
-> Note: RegisterAgent will fail unless an AgentHandler server is running on the callback address. Use the TypeScript SDK or a gRPC mock to provide one.
+3. Click **Invoke**
+4. Verify response shows `success: true` with `agentId`, `did`, and `agentUrl`
+
+#### Save to Collection
+
+Click **Save** → create collection `Bindu gRPC` → save each method as a separate request.
+
+> **Note:** `curl` does not work with gRPC. gRPC uses HTTP/2 with binary protobuf encoding. Use `grpcurl` or Postman's gRPC tab instead.
+
+### Option C: Testing with Python unit tests
+
+```bash
+cd /path/to/Bindu
+uv run pytest tests/unit/grpc/ -v
+```
+
+This runs all gRPC unit tests including GrpcAgentClient, AgentRegistry, and BinduServiceImpl.
+
+## Proto Generation
+
+### What is the `generated/` folder?
+
+The `bindu/grpc/generated/` folder contains auto-generated Python code from the proto definition. These files are created by the protobuf compiler (`protoc`) and should **never be edited by hand**.
+
+| Generated file | Purpose |
+|---------------|---------|
+| `agent_handler_pb2.py` | Python classes for all proto messages — `ChatMessage`, `HandleRequest`, `HandleResponse`, `RegisterAgentRequest`, etc. These are the serialization/deserialization layer. |
+| `agent_handler_pb2_grpc.py` | gRPC server base classes (`BinduServiceServicer`, `AgentHandlerServicer`) and client stubs (`BinduServiceStub`, `AgentHandlerStub`). The core's `service.py` extends the servicers, and `client.py` uses the stubs. |
+| `agent_handler_pb2.pyi` | Type hints (`.pyi` stub file) so IDEs provide autocomplete and type checking for the generated classes. |
+
+### How to regenerate
+
+If you modify `proto/agent_handler.proto`, regenerate the stubs:
+
+```bash
+cd /path/to/Bindu
+bash scripts/generate_protos.sh python
+```
+
+Or manually:
+
+```bash
+uv run python -m grpc_tools.protoc \
+  -I proto \
+  --python_out=bindu/grpc/generated \
+  --grpc_python_out=bindu/grpc/generated \
+  --pyi_out=bindu/grpc/generated \
+  proto/agent_handler.proto
+```
+
+### Generate for all languages
+
+```bash
+# Python + TypeScript
+bash scripts/generate_protos.sh python
+bash scripts/generate_protos.sh typescript
+
+# Or all at once
+bash scripts/generate_protos.sh all
+```
+
+Kotlin stubs are generated automatically by the Gradle protobuf plugin during `./gradlew build`.
+
+### How the generated code is used
+
+```python
+# In bindu/grpc/client.py (GrpcAgentClient)
+from bindu.grpc.generated.agent_handler_pb2 import ChatMessage, HandleRequest
+from bindu.grpc.generated.agent_handler_pb2_grpc import AgentHandlerStub
+
+# Convert Python dicts → proto messages
+proto_msgs = [ChatMessage(role=m["role"], content=m["content"]) for m in messages]
+request = HandleRequest(messages=proto_msgs)
+
+# Make gRPC call using generated stub
+response = self._stub.HandleMessages(request, timeout=30.0)
+```
+
+```python
+# In bindu/grpc/service.py (BinduServiceImpl)
+from bindu.grpc.generated.agent_handler_pb2 import RegisterAgentResponse
+from bindu.grpc.generated.agent_handler_pb2_grpc import BinduServiceServicer
+
+class BinduServiceImpl(BinduServiceServicer):
+    def RegisterAgent(self, request, context):
+        # request is a generated RegisterAgentRequest class
+        config = json.loads(request.config_json)
+        # ... run bindufy logic ...
+        return RegisterAgentResponse(success=True, agent_id=str(agent_id), ...)
+```
+
+### The flow
+
+```
+proto/agent_handler.proto          (single source of truth)
+        │
+        │  protoc compiler
+        ▼
+bindu/grpc/generated/              (auto-generated, never edit)
+  ├── agent_handler_pb2.py         → message classes
+  ├── agent_handler_pb2_grpc.py    → server/client stubs
+  └── agent_handler_pb2.pyi        → type hints
+        │
+        │  imported by
+        ▼
+bindu/grpc/
+  ├── client.py                    → uses AgentHandlerStub
+  ├── service.py                   → extends BinduServiceServicer
+  └── server.py                    → uses add_BinduServiceServicer_to_server
+```
+
+> **Important:** The `generated/` folder is committed to git so that users don't need `grpcio-tools` installed just to use Bindu. Only contributors who modify the proto need the generation tools.
 
 ## File Structure
 
@@ -455,6 +750,86 @@ To add support for a new language (e.g., Go, Rust, Swift):
 5. **Expose `bindufy(config, handler)`** — the developer-facing API
 
 The SDK should be ~200-400 lines. The proto contract is the single source of truth — as long as the SDK speaks the same proto, it works with any version of the Bindu core.
+
+## Testing
+
+### Test Pyramid
+
+```
+        ┌─────────────┐
+        │   E2E Tests  │  tests/integration/grpc/  — real servers, real ports
+        │  (5 tests)   │  Run: uv run pytest tests/integration/grpc/ -v -m e2e
+        ├──────────────┤
+        │  Unit Tests  │  tests/unit/grpc/  — mocked, hermetic, fast
+        │ (40+ tests)  │  Run: uv run pytest tests/unit/grpc/ -v
+        └──────────────┘
+```
+
+### Unit Tests (in pre-commit, every commit)
+
+Fast, hermetic, no network ports. All gRPC calls are mocked.
+
+```bash
+uv run pytest tests/unit/grpc/ -v
+```
+
+| Test file | What it covers |
+|-----------|---------------|
+| `test_client.py` | GrpcAgentClient — unary, streaming, health check, capabilities, connection lifecycle |
+| `test_registry.py` | AgentRegistry — register, unregister, heartbeat, thread safety |
+| `test_service.py` | BinduServiceImpl — RegisterAgent, config conversion, error handling |
+
+### E2E Integration Tests (in CI, every PR)
+
+Full round-trip with real gRPC and HTTP servers on non-standard ports (13773, 13774, 13999) to avoid conflicts.
+
+```bash
+uv run pytest tests/integration/grpc/ -v -m e2e
+```
+
+| Test | What it proves |
+|------|---------------|
+| `test_heartbeat_unregistered` | gRPC server starts, accepts requests |
+| `test_register_agent` | Full bindufy flow over gRPC — DID, manifest, HTTP server |
+| `test_heartbeat_registered` | Heartbeat acknowledged for registered agents |
+| `test_agent_card_available` | A2A agent card served with DID extension after registration |
+| `test_send_message_and_get_response` | **Full round-trip**: A2A HTTP → TaskManager → Scheduler → Worker → GrpcAgentClient → Mock AgentHandler → response with DID signature |
+| `test_health_endpoint` | /health endpoint works on registered agent's server |
+
+The E2E tests use a `MockAgentHandler` that simulates what a TypeScript or Kotlin SDK does — receives `HandleMessages` calls and returns echo responses.
+
+### CI Pipeline
+
+The CI workflow (`.github/workflows/ci.yml`) runs on every PR to main:
+
+```
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   Unit Tests     │     │  E2E gRPC Tests  │     │  TypeScript SDK  │
+│  Python 3.12+    │────►│  Real servers    │     │  Build verify    │
+│  Pre-commit      │     │  Full round-trip │     │  npm install     │
+│  Coverage ≥60%   │     │                  │     │  npm run build   │
+└──────────────────┘     └──────────────────┘     └──────────────────┘
+```
+
+- **Unit tests** run on Python 3.12 and 3.13 in parallel
+- **E2E tests** run after unit tests pass (real gRPC + HTTP servers)
+- **TypeScript SDK** build verification runs in parallel
+
+### Running All Tests Locally
+
+```bash
+# Unit tests only (fast, ~7s)
+uv run pytest tests/unit/ -v
+
+# E2E tests only (needs ports, ~10s)
+uv run pytest tests/integration/grpc/ -v -m e2e
+
+# Everything
+uv run pytest tests/ -v
+
+# With coverage
+uv run pytest tests/ --cov=bindu --cov-report=term-missing
+```
 
 ## Backward Compatibility
 

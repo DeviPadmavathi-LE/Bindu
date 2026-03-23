@@ -29,7 +29,7 @@ def _handle_serve(args: argparse.Namespace) -> None:
     """
     if not args.grpc:
         print("Error: --grpc flag is required for `bindu serve`")
-        print("Usage: bindu serve --grpc [--port 3773] [--grpc-port 3774]")
+        print("Usage: bindu serve --grpc [--grpc-port 3774]")
         sys.exit(1)
 
     # Import here to avoid loading heavy dependencies on --help
@@ -73,12 +73,6 @@ def main() -> None:
         "--grpc",
         action="store_true",
         help="Enable gRPC server for language SDK registration",
-    )
-    serve_parser.add_argument(
-        "--port",
-        type=int,
-        default=3773,
-        help="HTTP server port (default: 3773)",
     )
     serve_parser.add_argument(
         "--grpc-port",

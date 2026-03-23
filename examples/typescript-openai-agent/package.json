@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@bindu/sdk": "file:../../sdks/typescript",
-    "openai": "^4.70.0",
+    "openai": "^4.0.0",
     "dotenv": "^16.4.0"
   },
   "devDependencies": {

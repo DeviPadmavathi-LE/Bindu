@@ -1,11 +1,11 @@
 /**
  * TypeScript OpenAI Agent — Bindufied
  *
- * Demonstrates using the Bindu TypeScript SDK with the OpenAI SDK directly.
- * No LangChain, no framework — just the OpenAI client and Bindu.
+ * Demonstrates using the Bindu TypeScript SDK with the OpenAI SDK.
+ * Uses GPT-4o to answer questions and assist users.
  *
  * Usage:
- *   1. Set OPENAI_API_KEY in .env or environment
+ *   1. Set OPENAI_API_KEY in .env
  *   2. npx tsx index.ts
  */
 
@@ -15,14 +15,17 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // bindufy — one call, full microservice
 bindufy(
   {
-    author: "dev@example.com",
+    author: "opnai-sample-ts@getbindu.com",
     name: "openai-assistant-agent",
-    description: "An assistant built with the OpenAI SDK and Bindu",
+    description:
+      "An assistant built with the OpenAI SDK and Bindu. Powered by GPT-4o.",
     version: "1.0.0",
     deployment: {
       url: "http://localhost:3773",
@@ -32,9 +35,9 @@ bindufy(
     skills: ["skills/question-answering"],
   },
   async (messages: ChatMessage[]) => {
-    // Call OpenAI directly — developer uses whatever they want
+    // Call OpenAI GPT-4o
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: process.env.OPENAI_MODEL || "gpt-4o",
       messages: messages.map((m) => ({
         role: m.role as "user" | "assistant" | "system",
         content: m.content,

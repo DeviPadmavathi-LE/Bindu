@@ -3,12 +3,18 @@
 GrpcAgentClient is a callable class that replaces manifest.run for agents
 registered via gRPC. When ManifestWorker calls manifest.run(messages) at
 line 171 of manifest_worker.py, this client makes a gRPC call to the SDK's
-AgentHandler.HandleMessages endpoint and returns the result in the same
-format that ResultProcessor and ResponseDetector expect.
+AgentHandler endpoint and returns the result in the same format that
+ResultProcessor and ResponseDetector expect.
+
+Supports both unary and streaming responses:
+    - Unary (HandleMessages): Returns str or dict directly.
+    - Streaming (HandleMessagesStream): Returns a generator that yields
+      chunks. ResultProcessor.collect_results() drains it automatically.
 
 Key contract:
     - Input:  list[dict[str, str]] — chat messages [{"role": "user", "content": "..."}]
-    - Output: str (normal completion) or dict with "state" key (state transition)
+    - Output: str (normal completion), dict with "state" key (state transition),
+      or generator of str/dict (streaming — collected by ResultProcessor).
 
 This means ManifestWorker, ResultProcessor, and ResponseDetector require
 zero changes — they cannot tell the difference between a local Python handler
@@ -34,26 +40,41 @@ class GrpcAgentClient:
     it creates a GrpcAgentClient pointing to the SDK's AgentHandler server.
     This client is set as manifest.run, so ManifestWorker calls it transparently.
 
+    Supports both unary and streaming modes:
+        - Unary: Calls HandleMessages, returns str or dict.
+        - Streaming: Calls HandleMessagesStream, returns a generator.
+          ResultProcessor.collect_results() handles generators via __next__.
+
     The __call__ signature uses 'messages' as the parameter name to pass
     validate_agent_function() inspection.
 
     Attributes:
         _address: The SDK's AgentHandler gRPC address (e.g., "localhost:50052").
         _timeout: Timeout in seconds for HandleMessages calls.
+        _use_streaming: Whether to use HandleMessagesStream instead of HandleMessages.
         _channel: Lazy-initialized gRPC channel.
         _stub: Lazy-initialized AgentHandler stub.
     """
 
-    def __init__(self, callback_address: str, timeout: float = 30.0) -> None:
+    def __init__(
+        self,
+        callback_address: str,
+        timeout: float = 30.0,
+        use_streaming: bool = False,
+    ) -> None:
         """Initialize the gRPC agent client.
 
         Args:
             callback_address: The SDK's AgentHandler gRPC server address
                 (e.g., "localhost:50052").
             timeout: Timeout in seconds for HandleMessages calls.
+            use_streaming: If True, use HandleMessagesStream (server-side streaming)
+                instead of HandleMessages (unary). The streaming RPC returns a
+                generator that ResultProcessor.collect_results() will drain.
         """
         self._address = callback_address
         self._timeout = timeout
+        self._use_streaming = use_streaming
         self._channel: grpc.Channel | None = None
         self._stub: agent_handler_pb2_grpc.AgentHandlerStub | None = None
 
@@ -70,16 +91,37 @@ class GrpcAgentClient:
             self._stub = agent_handler_pb2_grpc.AgentHandlerStub(self._channel)
             logger.debug(f"Connected to agent handler at {self._address}")
 
-    def __call__(
-        self, messages: list[dict[str, str]], **kwargs: Any
-    ) -> str | dict[str, Any]:
+    def _build_request(
+        self, messages: list[dict[str, str]]
+    ) -> agent_handler_pb2.HandleRequest:
+        """Convert chat-format messages to a proto HandleRequest.
+
+        Args:
+            messages: Conversation history as list of dicts.
+                Each dict has "role" (str) and "content" (str) keys.
+
+        Returns:
+            HandleRequest proto message ready for gRPC call.
+        """
+        proto_messages = [
+            agent_handler_pb2.ChatMessage(
+                role=m.get("role", "user"),
+                content=m.get("content", ""),
+            )
+            for m in messages
+        ]
+        return agent_handler_pb2.HandleRequest(messages=proto_messages)
+
+    def __call__(self, messages: list[dict[str, str]], **kwargs: Any) -> Any:
         """Execute the remote handler with conversation history.
 
         Called by ManifestWorker at line 171:
             raw_results = self.manifest.run(message_history or [])
 
-        Converts chat-format messages to proto, calls HandleMessages on the
-        SDK's AgentHandler, and converts the response back to str or dict.
+        Supports two modes:
+            - Unary (default): Calls HandleMessages, returns str or dict.
+            - Streaming: Calls HandleMessagesStream, returns a generator.
+              ResultProcessor.collect_results() drains generators via __next__.
 
         Args:
             messages: Conversation history as list of dicts.
@@ -87,9 +129,12 @@ class GrpcAgentClient:
             **kwargs: Additional keyword arguments (ignored, for compatibility).
 
         Returns:
-            str: Plain text response (maps to "completed" task state).
-            dict: Structured response with "state" key for state transitions
-                (e.g., {"state": "input-required", "prompt": "..."}).
+            Unary mode:
+                str: Plain text response (maps to "completed" task state).
+                dict: Structured response with "state" key for state transitions.
+            Streaming mode:
+                Generator[str | dict]: Yields chunks. ResultProcessor.collect_results()
+                uses the last yielded value as the final result.
 
         Raises:
             grpc.RpcError: If the gRPC call fails (caught by ManifestWorker's
@@ -98,25 +143,55 @@ class GrpcAgentClient:
         self._ensure_connected()
         assert self._stub is not None
 
-        # Convert list[dict] to proto ChatMessage objects
-        proto_messages = [
-            agent_handler_pb2.ChatMessage(
-                role=m.get("role", "user"),
-                content=m.get("content", ""),
+        request = self._build_request(messages)
+
+        if self._use_streaming:
+            logger.debug(
+                f"Calling HandleMessagesStream on {self._address} "
+                f"with {len(request.messages)} messages"
             )
-            for m in messages
-        ]
+            return self._handle_streaming(request)
+        else:
+            logger.debug(
+                f"Calling HandleMessages on {self._address} "
+                f"with {len(request.messages)} messages"
+            )
+            return self._handle_unary(request)
 
-        request = agent_handler_pb2.HandleRequest(messages=proto_messages)
+    def _handle_unary(
+        self, request: agent_handler_pb2.HandleRequest
+    ) -> str | dict[str, Any]:
+        """Make a unary HandleMessages call.
 
-        logger.debug(
-            f"Calling HandleMessages on {self._address} "
-            f"with {len(proto_messages)} messages"
-        )
+        Args:
+            request: Proto HandleRequest.
 
+        Returns:
+            str or dict from _response_to_result().
+        """
+        assert self._stub is not None
         response = self._stub.HandleMessages(request, timeout=self._timeout)
-
         return self._response_to_result(response)
+
+    def _handle_streaming(self, request: agent_handler_pb2.HandleRequest) -> Any:
+        """Make a streaming HandleMessagesStream call.
+
+        Returns a generator that yields results from the stream.
+        ResultProcessor.collect_results() detects this via __next__
+        and drains it, using the last yielded value as the final result.
+
+        Args:
+            request: Proto HandleRequest.
+
+        Yields:
+            str or dict from _response_to_result() for each stream chunk.
+        """
+        assert self._stub is not None
+        response_stream = self._stub.HandleMessagesStream(
+            request, timeout=self._timeout
+        )
+        for response in response_stream:
+            yield self._response_to_result(response)
 
     @staticmethod
     def _response_to_result(
@@ -196,4 +271,8 @@ class GrpcAgentClient:
             logger.debug(f"Closed connection to {self._address}")
 
     def __repr__(self) -> str:  # noqa: D105
-        return f"GrpcAgentClient(address={self._address!r}, timeout={self._timeout})"
+        mode = "streaming" if self._use_streaming else "unary"
+        return (
+            f"GrpcAgentClient(address={self._address!r}, "
+            f"timeout={self._timeout}, mode={mode})"
+        )

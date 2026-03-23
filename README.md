@@ -437,6 +437,7 @@ Output:
 | 🔄 **Retry Mechanism** | Automatic retry with exponential backoff for resilient agents | [Guide →](https://docs.getbindu.com/bindu/learn/retry/overview) |
 | 🔑 **Decentralized Identifiers (DIDs)** | Cryptographic identity for verifiable, secure agent interactions and payment integration | [Guide →](docs/DID.md) |
 | 🏥 **Health Check & Metrics** | Monitor agent health and performance with built-in endpoints | [Guide →](docs/HEALTH_METRICS.md) |
+| 🌍 **Language-Agnostic (gRPC)** | Bindufy agents written in TypeScript, Kotlin, Rust, or any language via gRPC adapter | [Guide →](docs/GRPC_LANGUAGE_AGNOSTIC.md) |
 
 ---
 
@@ -524,9 +525,18 @@ Want integration with your favorite framework? [Let us know on Discord](https://
 Bindu maintains **70%+ test coverage** (target: 80%+):
 
 ```bash
+# Unit tests (fast, in pre-commit)
+uv run pytest tests/unit/ -v
+
+# E2E gRPC integration tests (real servers, full round-trip)
+uv run pytest tests/integration/grpc/ -v -m e2e
+
+# All tests with coverage
 uv run pytest -n auto --cov=bindu --cov-report=term-missing
 uv run coverage report --skip-covered --fail-under=70
 ```
+
+**CI runs automatically on every PR** — unit tests, E2E gRPC tests, and TypeScript SDK build verification. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ---
 

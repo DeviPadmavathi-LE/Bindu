@@ -101,13 +101,13 @@ export async function launchCore(
   const binduPath = findBinduExecutable();
   if (binduPath) {
     command = binduPath;
-    args = ["serve", "--grpc", "--grpc-port", String(grpcPort), "--port", String(httpPort)];
+    args = ["serve", "--grpc", "--grpc-port", String(grpcPort)];
   } else if (hasUv()) {
     command = "uv";
-    args = ["run", "bindu", "serve", "--grpc", "--grpc-port", String(grpcPort), "--port", String(httpPort)];
+    args = ["run", "bindu", "serve", "--grpc", "--grpc-port", String(grpcPort)];
   } else {
     command = "python3";
-    args = ["-m", "bindu.cli", "serve", "--grpc", "--grpc-port", String(grpcPort), "--port", String(httpPort)];
+    args = ["-m", "bindu.cli", "serve", "--grpc", "--grpc-port", String(grpcPort)];
   }
 
   console.log(`Starting Bindu core: ${command} ${args.join(" ")}`);
