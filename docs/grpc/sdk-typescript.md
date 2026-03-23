@@ -1,479 +1,269 @@
-# TypeScript SDK Guide
+# TypeScript SDK
 
-Complete guide for building agents with the Bindu TypeScript SDK (`@bindu/sdk`).
+## The Idea
+
+You have a TypeScript agent. Maybe it uses the OpenAI SDK, LangChain.js, or just raw `fetch` calls. You want it to be a real microservice — with identity, authentication, payments, and a standard protocol. But you don't want to rewrite infrastructure.
+
+```typescript
+import { bindufy } from "@bindu/sdk";
+
+bindufy({
+  author: "dev@example.com",
+  name: "my-agent",
+  deployment: { url: "http://localhost:3773", expose: true },
+}, async (messages) => {
+  // Your agent logic — any framework, any LLM
+  return "Hello from TypeScript!";
+});
+```
+
+One function call. One terminal. Full microservice.
 
 ## Installation
 
 ```bash
 npm install @bindu/sdk
-# or
-yarn add @bindu/sdk
-# or
-pnpm add @bindu/sdk
 ```
 
-## Quick Start
+The SDK also needs the Bindu Python core installed on the machine:
+
+```bash
+pip install bindu
+```
+
+The SDK finds and launches the Python core automatically. You don't start it manually.
+
+## What Happens When You Call `bindufy()`
+
+1. SDK reads your skill files (yaml/markdown) from disk
+2. SDK starts a gRPC server on a random port — this is where the core will call your handler
+3. SDK spawns `bindu serve --grpc` as a child process
+4. SDK waits for the core's gRPC server to be ready on `:3774`
+5. SDK calls `RegisterAgent` with your config, skills, and callback address
+6. Core runs the full bindufy pipeline — DID, auth, x402, manifest, HTTP server
+7. SDK receives the agent ID, DID, and A2A URL
+8. SDK starts a heartbeat loop (every 30 seconds)
+9. You see "Waiting for messages..."
+
+When a message arrives via A2A HTTP, the core calls your handler over gRPC. You process it, return a string, and the core sends it back to the client with a DID signature.
+
+When you press `Ctrl+C`, the SDK kills the Python core and exits.
+
+## Handler Patterns
+
+### Simple response
 
 ```typescript
-import { bindufy } from "@bindu/sdk";
-
-// Simple echo agent
-bindufy({
-  author: "dev@example.com",
-  name: "my-agent",
-  description: "A simple echo agent",
-  deployment: {
-    url: "http://localhost:3773",
-    expose: true
-  }
-}, async (messages) => {
-  const lastMessage = messages[messages.length - 1];
-  return `Echo: ${lastMessage.content}`;
-});
-```
-
-## How It Works
-
-When you call `bindufy()`, the SDK:
-
-1. **Reads skill files** from your project directory
-2. **Starts a gRPC server** (AgentHandler) on a random port
-3. **Spawns the Bindu core** as a child process (`bindu serve --grpc`)
-4. **Registers your agent** via gRPC (RegisterAgent RPC)
-5. **Starts heartbeat loop** (every 30 seconds)
-6. **Waits for execution requests** (HandleMessages RPC)
-
-```mermaid
-sequenceDiagram
-    participant Dev as Your Code
-    participant SDK as @bindu/sdk
-    participant Core as Bindu Core
-    participant Client as External Client
-
-    Dev->>SDK: bindufy(config, handler)
-    SDK->>SDK: Start AgentHandler gRPC server
-    SDK->>Core: Spawn Python process
-    SDK->>Core: RegisterAgent(config, skills)
-    Core-->>SDK: {agent_id, did, url}
-    SDK-->>Dev: "Agent running at http://localhost:3773"
-
-    loop Every 30s
-        SDK->>Core: Heartbeat
-    end
-
-    Client->>Core: A2A message/send
-    Core->>SDK: HandleMessages(messages)
-    SDK->>Dev: handler(messages)
-    Dev-->>SDK: return response
-    SDK-->>Core: HandleResponse
-    Core-->>Client: A2A response
-```
-
-## Configuration
-
-### Full Config Example
-
-```typescript
-import { bindufy, BinduConfig } from "@bindu/sdk";
-
-const config: BinduConfig = {
-  // Required
-  author: "dev@example.com",
-  name: "my-agent",
-
-  // Optional
-  description: "My awesome agent",
-  version: "1.0.0",
-
-  // Deployment
-  deployment: {
-    url: "http://localhost:3773",
-    expose: true,
-    tunnel: {
-      enabled: false,
-      provider: "ngrok"
-    }
-  },
-
-  // Skills
-  skills: [
-    "skills/question-answering",
-    "skills/data-analysis"
-  ],
-
-  // Authentication
-  auth: {
-    enabled: false
-  },
-
-  // Payments (x402)
-  x402: {
-    enabled: false,
-    provider: "coinbase",
-    network: "base-sepolia"
-  }
-};
-
-bindufy(config, async (messages) => {
-  // Your handler logic
-  return "Response";
-});
-```
-
-### Config Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `author` | `string` | ✅ | Your email or identifier |
-| `name` | `string` | ✅ | Agent name (lowercase, hyphens) |
-| `description` | `string` | ❌ | Agent description |
-| `version` | `string` | ❌ | Agent version (default: "0.1.0") |
-| `deployment.url` | `string` | ✅ | HTTP server URL |
-| `deployment.expose` | `boolean` | ❌ | Expose to internet (default: false) |
-| `skills` | `string[]` | ❌ | Paths to skill files |
-| `auth.enabled` | `boolean` | ❌ | Enable authentication |
-| `x402.enabled` | `boolean` | ❌ | Enable payments |
-
-## Handler Function
-
-The handler receives conversation history and returns a response.
-
-### Basic Handler
-
-```typescript
-async function handler(messages: ChatMessage[]): Promise<string> {
-  const lastMessage = messages[messages.length - 1];
-  return `You said: ${lastMessage.content}`;
+async (messages) => {
+  return "The answer is 42.";
 }
-
-bindufy(config, handler);
 ```
 
-### Handler with OpenAI
+Task completes immediately with this response.
+
+### OpenAI SDK
 
 ```typescript
 import OpenAI from "openai";
+const openai = new OpenAI();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-bindufy(config, async (messages) => {
+async (messages) => {
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: messages.map(m => ({
       role: m.role as "user" | "assistant" | "system",
-      content: m.content
-    }))
+      content: m.content,
+    })),
   });
-
   return response.choices[0].message.content || "";
-});
-```
-
-### Handler with LangChain
-
-```typescript
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
-
-const llm = new ChatOpenAI({ modelName: "gpt-4o" });
-
-bindufy(config, async (messages) => {
-  const langchainMessages = messages.map(m => {
-    if (m.role === "user") return new HumanMessage(m.content);
-    if (m.role === "agent") return new AIMessage(m.content);
-    return new SystemMessage(m.content);
-  });
-
-  const response = await llm.invoke(langchainMessages);
-  return response.content as string;
-});
-```
-
-## State Transitions
-
-Return structured responses to control task state:
-
-### Request User Input
-
-```typescript
-bindufy(config, async (messages) => {
-  const lastMessage = messages[messages.length - 1];
-
-  if (!lastMessage.content.includes("confirm")) {
-    return {
-      state: "input-required",
-      prompt: "Please confirm by typing 'confirm'",
-      content: "Waiting for confirmation..."
-    };
-  }
-
-  return "Confirmed! Processing...";
-});
-```
-
-### Request Authentication
-
-```typescript
-bindufy(config, async (messages) => {
-  // Check if user is authenticated
-  const isAuthenticated = checkAuth(messages);
-
-  if (!isAuthenticated) {
-    return {
-      state: "auth-required",
-      prompt: "Please authenticate to continue",
-      content: "Authentication required"
-    };
-  }
-
-  return "Processing authenticated request...";
-});
-```
-
-### Response Format
-
-| Return Type | Task State | Description |
-|------------|------------|-------------|
-| `string` | `completed` | Normal completion |
-| `{state: "input-required", prompt: string}` | `input-required` | Task stays open, waits for user |
-| `{state: "auth-required"}` | `auth-required` | Requires authentication |
-| `{state: "payment-required"}` | `payment-required` | Requires payment |
-
-## Skills
-
-Skills are YAML or Markdown files that describe what your agent can do.
-
-### Create a Skill
-
-**`skills/question-answering.yaml`**
-```yaml
-name: question-answering
-description: Answer questions about any topic
-tags:
-  - qa
-  - general
-examples:
-  - "What is the capital of France?"
-  - "Explain quantum computing"
-```
-
-### Reference in Config
-
-```typescript
-bindufy({
-  // ... other config
-  skills: [
-    "skills/question-answering.yaml",
-    "skills/data-analysis.yaml"
-  ]
-}, handler);
-```
-
-The SDK reads these files and sends them to the core during registration.
-
-## Error Handling
-
-```typescript
-bindufy(config, async (messages) => {
-  try {
-    const result = await riskyOperation();
-    return result;
-  } catch (error) {
-    console.error("Handler error:", error);
-    return {
-      state: "failed",
-      content: `Error: ${error.message}`
-    };
-  }
-});
-```
-
-## Environment Variables
-
-The SDK respects these environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `BINDU_CORE_HOST` | `localhost` | Bindu core gRPC host |
-| `BINDU_CORE_PORT` | `3774` | Bindu core gRPC port |
-| `BINDU_HANDLER_PORT` | Random | SDK's AgentHandler port |
-| `BINDU_HEARTBEAT_INTERVAL` | `30000` | Heartbeat interval (ms) |
-
-## Debugging
-
-### Enable Debug Logs
-
-```typescript
-process.env.DEBUG = "bindu:*";
-
-bindufy(config, handler);
-```
-
-### Check Agent Status
-
-```bash
-# Get agent card
-curl http://localhost:3773/.well-known/agent.json | jq
-
-# Check health
-curl http://localhost:3773/health
-```
-
-## Current Limitations
-
-### ❌ No Streaming Support
-
-The TypeScript SDK currently **does not support streaming responses**. You must return complete responses.
-
-```typescript
-// ❌ This won't work
-bindufy(config, async function* (messages) {
-  yield "Chunk 1";
-  yield "Chunk 2";
-  yield "Chunk 3";
-});
-
-// ✅ This works
-bindufy(config, async (messages) => {
-  return "Complete response";
-});
-```
-
-See [limitations](./limitations.md) for details.
-
-## Examples
-
-### Minimal Agent
-
-```typescript
-import { bindufy } from "@bindu/sdk";
-
-bindufy({
-  author: "dev@example.com",
-  name: "echo-agent"
-}, async (messages) => {
-  return `Echo: ${messages[messages.length - 1].content}`;
-});
-```
-
-### Agent with Context
-
-```typescript
-import { bindufy } from "@bindu/sdk";
-
-const conversationHistory = new Map<string, any[]>();
-
-bindufy({
-  author: "dev@example.com",
-  name: "context-agent"
-}, async (messages) => {
-  // Use full message history for context
-  const context = messages.map(m =>
-    `${m.role}: ${m.content}`
-  ).join("\n");
-
-  return `Based on our conversation:\n${context}\n\nMy response: ...`;
-});
-```
-
-### Agent with External API
-
-```typescript
-import { bindufy } from "@bindu/sdk";
-import axios from "axios";
-
-bindufy({
-  author: "dev@example.com",
-  name: "weather-agent",
-  skills: ["skills/weather.yaml"]
-}, async (messages) => {
-  const lastMessage = messages[messages.length - 1].content;
-
-  // Extract location from message
-  const location = extractLocation(lastMessage);
-
-  // Call weather API
-  const weather = await axios.get(
-    `https://api.weather.com/v1/current?location=${location}`
-  );
-
-  return `The weather in ${location} is ${weather.data.condition}`;
-});
-```
-
-## TypeScript Types
-
-The SDK provides full TypeScript types:
-
-```typescript
-import {
-  BinduConfig,
-  ChatMessage,
-  HandlerResponse,
-  SkillDefinition
-} from "@bindu/sdk";
-
-// Config is fully typed
-const config: BinduConfig = {
-  author: "dev@example.com",
-  name: "typed-agent"
-};
-
-// Handler has typed parameters and return
-async function handler(
-  messages: ChatMessage[]
-): Promise<string | HandlerResponse> {
-  // messages[0].role is typed as "user" | "agent" | "system"
-  // messages[0].content is string
-
-  return {
-    state: "completed", // Autocomplete works!
-    content: "Done"
-  };
 }
 ```
 
-## Building and Publishing
+### LangChain.js
 
-### Build the SDK
+```typescript
+import { ChatOpenAI } from "@langchain/openai";
+const llm = new ChatOpenAI({ model: "gpt-4o" });
+
+async (messages) => {
+  const response = await llm.invoke(
+    messages.map(m => ({ role: m.role, content: m.content }))
+  );
+  return typeof response.content === "string"
+    ? response.content
+    : JSON.stringify(response.content);
+}
+```
+
+### Multi-turn conversation
+
+Sometimes your agent needs more information before it can answer. Return a state transition:
+
+```typescript
+async (messages) => {
+  if (messages.length === 1) {
+    // First message — ask for clarification
+    return {
+      state: "input-required",
+      prompt: "Could you be more specific about what you're looking for?"
+    };
+  }
+
+  // Second message — now answer
+  const lastMessage = messages[messages.length - 1].content;
+  return `Based on your clarification: here's the detailed answer about "${lastMessage}"...`;
+}
+```
+
+The task stays open after `input-required`. The user sends a follow-up. The core calls your handler again with the full conversation history.
+
+### Error handling
+
+If your handler throws, the SDK catches it and returns a gRPC error. ManifestWorker marks the task as failed. The user gets an error response.
+
+```typescript
+async (messages) => {
+  try {
+    return await myLlmCall(messages);
+  } catch (err) {
+    // Option A: Let it throw — task fails with error message
+    throw err;
+
+    // Option B: Return a graceful message
+    return "Sorry, I'm having trouble processing your request right now.";
+  }
+}
+```
+
+## Configuration
+
+```typescript
+bindufy({
+  // Required
+  author: "dev@example.com",        // Used for DID generation
+  name: "my-agent",                  // Agent name
+  deployment: {
+    url: "http://localhost:3773",    // A2A HTTP server address
+    expose: true,                    // Enable CORS
+    cors_origins: ["http://localhost:5173"],
+  },
+
+  // Optional
+  description: "What my agent does",
+  version: "1.0.0",
+  skills: ["skills/question-answering"],
+  execution_cost: {                  // x402 payments
+    amount: "1000000",
+    token: "USDC",
+    network: "base-sepolia",
+  },
+  capabilities: {
+    streaming: false,
+    push_notifications: false,
+  },
+
+  // Advanced
+  coreAddress: "localhost:3774",     // Override core gRPC address
+  callbackPort: 0,                   // 0 = auto-assign
+  debug_mode: false,
+  telemetry: true,
+  num_history_sessions: 10,
+}, handler);
+```
+
+## Skills
+
+Define what your agent can do. Two options:
+
+**File-based** (recommended) — create `skills/my-skill/skill.yaml` or `skills/my-skill/SKILL.md`:
+
+```typescript
+bindufy({
+  skills: ["skills/question-answering", "skills/code-review"],
+}, handler);
+```
+
+The SDK reads the files and sends the content to the core during registration.
+
+**Inline** — define skills directly in code:
+
+```typescript
+bindufy({
+  skills: [{
+    name: "question-answering",
+    description: "Answer questions using GPT-4o",
+    tags: ["qa", "assistant"],
+  }],
+}, handler);
+```
+
+## Types
+
+The SDK exports these types for your handler:
+
+```typescript
+interface ChatMessage {
+  role: string;     // "user", "assistant", or "system"
+  content: string;
+}
+
+// Your handler signature
+type MessageHandler = (messages: ChatMessage[]) => Promise<string | HandlerResponse>;
+
+interface HandlerResponse {
+  content?: string;
+  state?: "input-required" | "auth-required";
+  prompt?: string;
+  metadata?: Record<string, string>;
+}
+
+// Returned by bindufy()
+interface RegistrationResult {
+  agentId: string;
+  did: string;
+  agentUrl: string;
+}
+```
+
+## Debugging
+
+**Check core logs:** The Python core's output is prefixed with `[bindu-core]` in your terminal:
+
+```
+[bindu-core] INFO  gRPC server started on 0.0.0.0:3774
+[bindu-core] INFO  Agent registered: openai-assistant-agent
+[bindu-core] INFO  HTTP server started on 0.0.0.0:3773
+```
+
+**Test the agent manually:**
 
 ```bash
-cd sdks/typescript
-npm run build
+# Is the A2A server running?
+curl http://localhost:3773/health
+
+# What does the agent card look like?
+curl http://localhost:3773/.well-known/agent.json | python3 -m json.tool
+
+# Send a test message
+curl -X POST http://localhost:3773 -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"message/send","params":{"message":{"role":"user","parts":[{"kind":"text","text":"Hello"}],"messageId":"test-1","contextId":"test-2","taskId":"test-3","kind":"message"}},"id":"1"}'
 ```
 
-This compiles TypeScript to JavaScript in `dist/`.
-
-### Publish to npm
+**Port conflicts:**
 
 ```bash
-npm login
-npm publish --access public
+lsof -ti:3773 -ti:3774 | xargs kill 2>/dev/null
 ```
 
-## Project Structure
+## Limitations
 
-```
-sdks/typescript/
-├── src/
-│   ├── index.ts           # Main bindufy() function
-│   ├── client.ts          # BinduService gRPC client
-│   ├── server.ts          # AgentHandler gRPC server
-│   ├── core-launcher.ts   # Spawns Python core
-│   ├── types.ts           # TypeScript interfaces
-│   └── generated/         # Proto-generated code
-├── proto/
-│   └── agent_handler.proto
-├── dist/                  # Compiled JavaScript (gitignored)
-├── package.json
-└── tsconfig.json
-```
+- **No streaming** — handler must return complete responses, can't yield chunks
+- **Requires Python** — the Bindu core must be installed (`pip install bindu`)
+- **Single agent per port** — each `bindufy()` call uses `:3773` for HTTP
 
-## Next Steps
+See [full limitations](./limitations.md) for details.
 
-- **[API Reference](./api-reference.md)** - Complete gRPC API documentation
-- **[Limitations](./limitations.md)** - Known gaps and workarounds
-- **[Overview](./overview.md)** - Architecture diagrams
-- **[Building SDKs](./sdk-development.md)** - Create SDKs for other languages
+## Examples
+
+- [OpenAI Agent](../../examples/typescript-openai-agent/) — direct OpenAI SDK usage
+- [LangChain Agent](../../examples/typescript-langchain-agent/) — LangChain.js with ChatOpenAI

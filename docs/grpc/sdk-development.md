@@ -1,558 +1,151 @@
-# Building Language SDKs
+# Building SDKs for New Languages
 
-Guide for creating Bindu SDKs in new programming languages.
+You want to add Bindu support for Rust, Go, Swift, or another language. Here's what's involved.
 
-## Overview
+## What an SDK Does
 
-A Bindu SDK is a thin wrapper (~200-400 lines) that:
+An SDK is a thin wrapper — typically 200-400 lines — that hides gRPC from the developer. From their perspective, they call `bindufy(config, handler)` and get a microservice. The SDK handles everything in between.
 
-1. **Generates gRPC stubs** from `proto/agent_handler.proto`
-2. **Implements AgentHandler service** (receives HandleMessages calls)
-3. **Implements BinduService client** (calls RegisterAgent on core)
-4. **Spawns the Python core** as a child process
-5. **Exposes `bindufy(config, handler)`** to developers
+Concretely, an SDK does four things:
 
-## Architecture
+1. **Implements `AgentHandler`** — a gRPC server that receives `HandleMessages` calls from the core and invokes the developer's handler
+2. **Calls `BinduService.RegisterAgent`** — a gRPC client that registers the agent with the core
+3. **Launches the Python core** — spawns `bindu serve --grpc` as a child process
+4. **Exposes `bindufy(config, handler)`** — the developer-facing API that orchestrates all of the above
 
-```mermaid
-graph TB
-    subgraph "Your SDK (Any Language)"
-        API["bindufy(config, handler)<br/>Developer-facing API"]
-        SERVER["AgentHandler Server<br/>Receives HandleMessages"]
-        CLIENT["BinduService Client<br/>Calls RegisterAgent"]
-        LAUNCHER["CoreLauncher<br/>Spawns Python core"]
-    end
+The proto contract at `proto/agent_handler.proto` is the single source of truth. As long as your SDK speaks the same proto, it works with any version of the core.
 
-    subgraph "Bindu Core (Python)"
-        GRPC["gRPC Server :3774<br/>BinduService"]
-        HTTP["HTTP Server :3773<br/>A2A Protocol"]
-    end
+## Step 1: Generate gRPC Stubs
 
-    API --> LAUNCHER
-    API --> SERVER
-    API --> CLIENT
+Every language has a protoc plugin. Generate client and server stubs from the proto:
 
-    LAUNCHER -->|"spawn process"| GRPC
-    CLIENT -->|"RegisterAgent RPC"| GRPC
-    GRPC -->|"HandleMessages RPC"| SERVER
+| Language | Tool | Command |
+|----------|------|---------|
+| Rust | `tonic-build` | Add `tonic-build` to `build.rs`, it compiles the proto at build time |
+| Go | `protoc-gen-go-grpc` | `protoc --go_out=. --go-grpc_out=. proto/agent_handler.proto` |
+| Swift | `grpc-swift` | `protoc --swift_out=. --grpc-swift_out=. proto/agent_handler.proto` |
+| C# | `Grpc.Tools` | NuGet package auto-generates from `.proto` in the project |
 
-    style API fill:#e1f5fe
-    style GRPC fill:#fff3e0
+The generated code gives you typed message classes and service interfaces.
+
+## Step 2: Implement AgentHandler (Server)
+
+The core calls three methods on your SDK. You need to implement them:
+
+**HandleMessages** — the critical one. Receives conversation history, calls the developer's handler, returns the response.
+
+```
+Input:  HandleRequest { messages: [ChatMessage{role, content}, ...] }
+Output: HandleResponse { content: string, state: string, prompt: string, is_final: bool }
 ```
 
-## Step-by-Step Guide
+Rules:
+- If the handler returns a plain string, set `content` to the string and leave `state` empty
+- If the handler returns a state transition, set `state` to `"input-required"` or `"auth-required"` and `prompt` to the follow-up question
+- If the handler throws, return a gRPC `INTERNAL` error with the error message
+- Always set `is_final` to `true` (streaming not yet supported)
 
-### 1. Generate gRPC Stubs
+**GetCapabilities** — return static info about the SDK.
 
-Use your language's protoc plugin to generate code from `proto/agent_handler.proto`.
-
-**TypeScript:**
-```bash
-protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts \
-  --ts_out=src/generated \
-  --js_out=import_style=commonjs,binary:src/generated \
-  proto/agent_handler.proto
+```
+Output: GetCapabilitiesResponse { name, description, version, supports_streaming }
 ```
 
-**Kotlin:**
-```kotlin
-// build.gradle.kts
-plugins {
-    id("com.google.protobuf") version "0.9.4"
+**HealthCheck** — return `{healthy: true, message: "OK"}`.
+
+## Step 3: Implement BinduService Client
+
+Your SDK needs to call two methods on the core:
+
+**RegisterAgent** — sends config, skills, and the SDK's callback address.
+
+```
+Input: RegisterAgentRequest {
+  config_json: string,       // Full config as JSON
+  skills: [SkillDefinition], // Skills with raw file content
+  grpc_callback_address: string  // e.g., "localhost:50052"
 }
-
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:3.25.0"
-    }
-    plugins {
-        create("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.60.0"
-        }
-    }
-    generateProtoTasks {
-        all().forEach {
-            it.plugins {
-                create("grpc")
-            }
-        }
-    }
-}
+Output: RegisterAgentResponse { success, agent_id, did, agent_url, error }
 ```
 
-**Go:**
-```bash
-protoc --go_out=. --go_opt=paths=source_relative \
-  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-  proto/agent_handler.proto
+The `config_json` is a JSON string matching the Python `bindufy()` config format. This is intentional — the config schema lives in one place (Python), and SDKs just serialize to JSON.
+
+**Heartbeat** — call every 30 seconds to signal liveness.
+
+```
+Input: HeartbeatRequest { agent_id, timestamp }
 ```
 
-**Rust:**
-```bash
-cargo install protobuf-codegen
-protoc --rust_out=src/generated proto/agent_handler.proto
+## Step 4: Implement Core Launcher
+
+The SDK needs to start the Python core as a child process. The logic:
+
+1. Check if `bindu` CLI is available (pip-installed)
+2. If not, check if `uv` is available
+3. If not, fall back to `python3 -m bindu.cli`
+4. Spawn: `<command> serve --grpc --grpc-port 3774`
+5. Wait for `:3774` to accept TCP connections (poll every 500ms, timeout 30s)
+6. On parent exit (Ctrl+C), kill the child process
+
+## Step 5: Implement `bindufy()`
+
+Wire everything together in a single function:
+
+```
+function bindufy(config, handler):
+    skills = read_skill_files(config.skills)
+    callback_port = start_agent_handler_server(handler)
+    launch_python_core(grpc_port=3774)
+    wait_for_port(3774)
+    result = register_agent(config, skills, callback_address="localhost:{callback_port}")
+    start_heartbeat_loop(result.agent_id)
+    print("Agent registered! A2A URL: {result.agent_url}")
 ```
 
-### 2. Implement AgentHandler Service
+That's the entire SDK. Everything else is type definitions and error handling.
 
-This service receives execution requests from the core.
+## Skill Loading
 
-**TypeScript Example:**
+Skills are files in the developer's project. The SDK reads them and sends the content in the `RegisterAgent` call:
 
-```typescript
-import * as grpc from "@grpc/grpc-js";
-import { AgentHandlerService } from "./generated/agent_handler_grpc_pb";
-import { HandleRequest, HandleResponse } from "./generated/agent_handler_pb";
+1. For each skill path in `config.skills`, look for `skill.yaml` or `SKILL.md`
+2. Read the file content
+3. Parse the name and description (from YAML frontmatter or YAML fields)
+4. Send as `SkillDefinition { name, description, tags, raw_content, format }`
 
-class AgentHandlerImpl implements AgentHandlerService {
-  constructor(private handler: (messages: ChatMessage[]) => Promise<string>) {}
-
-  async handleMessages(
-    call: grpc.ServerUnaryCall<HandleRequest, HandleResponse>,
-    callback: grpc.sendUnaryData<HandleResponse>
-  ) {
-    try {
-      // 1. Convert proto messages to language-native format
-      const messages = call.request.getMessagesList().map(m => ({
-        role: m.getRole(),
-        content: m.getContent()
-      }));
-
-      // 2. Call developer's handler
-      const result = await this.handler(messages);
-
-      // 3. Convert result to proto response
-      const response = new HandleResponse();
-      if (typeof result === "string") {
-        response.setContent(result);
-      } else {
-        response.setContent(result.content);
-        response.setState(result.state || "");
-        response.setPrompt(result.prompt || "");
-      }
-
-      callback(null, response);
-    } catch (error) {
-      callback({
-        code: grpc.status.INTERNAL,
-        message: error.message
-      });
-    }
-  }
-
-  async getCapabilities(
-    call: grpc.ServerUnaryCall<GetCapabilitiesRequest, GetCapabilitiesResponse>,
-    callback: grpc.sendUnaryData<GetCapabilitiesResponse>
-  ) {
-    const response = new GetCapabilitiesResponse();
-    response.setName(this.config.name);
-    response.setVersion(this.config.version || "0.1.0");
-    response.setSupportsStreaming(false); // Not implemented yet
-    callback(null, response);
-  }
-
-  async healthCheck(
-    call: grpc.ServerUnaryCall<HealthCheckRequest, HealthCheckResponse>,
-    callback: grpc.sendUnaryData<HealthCheckResponse>
-  ) {
-    const response = new HealthCheckResponse();
-    response.setHealthy(true);
-    callback(null, response);
-  }
-}
-
-// Start server
-const server = new grpc.Server();
-server.addService(AgentHandlerService, new AgentHandlerImpl(handler));
-server.bindAsync(
-  `0.0.0.0:${port}`,
-  grpc.ServerCredentials.createInsecure(),
-  (err, port) => {
-    if (err) throw err;
-    server.start();
-    console.log(`AgentHandler server listening on :${port}`);
-  }
-);
-```
-
-**Key Points:**
-- Implement all 4 methods: `HandleMessages`, `HandleMessagesStream`, `GetCapabilities`, `HealthCheck`
-- Convert between proto messages and your language's native types
-- Call the developer's handler function
-- Handle errors gracefully
-
-### 3. Implement BinduService Client
-
-This client calls the core to register your agent.
-
-**TypeScript Example:**
-
-```typescript
-import * as grpc from "@grpc/grpc-js";
-import { BinduServiceClient } from "./generated/agent_handler_grpc_pb";
-import { RegisterAgentRequest, RegisterAgentResponse } from "./generated/agent_handler_pb";
-
-async function registerAgent(
-  config: BinduConfig,
-  skills: SkillDefinition[],
-  callbackAddress: string
-): Promise<RegisterAgentResponse> {
-  const client = new BinduServiceClient(
-    "localhost:3774",
-    grpc.credentials.createInsecure()
-  );
-
-  const request = new RegisterAgentRequest();
-  request.setConfigJson(JSON.stringify(config));
-  request.setSkillsList(skills);
-  request.setGrpcCallbackAddress(callbackAddress);
-
-  return new Promise((resolve, reject) => {
-    client.registerAgent(request, (err, response) => {
-      if (err) reject(err);
-      else resolve(response);
-    });
-  });
-}
-```
-
-### 4. Implement CoreLauncher
-
-Spawn the Python core as a child process.
-
-**TypeScript Example:**
-
-```typescript
-import { spawn, ChildProcess } from "child_process";
-
-export class CoreLauncher {
-  private process: ChildProcess | null = null;
-
-  async start(): Promise<void> {
-    // Try different methods to find bindu CLI
-    const commands = [
-      ["bindu", ["serve", "--grpc"]],
-      ["uv", ["run", "bindu", "serve", "--grpc"]],
-      ["python", ["-m", "bindu.cli", "serve", "--grpc"]]
-    ];
-
-    for (const [cmd, args] of commands) {
-      try {
-        this.process = spawn(cmd, args, {
-          stdio: ["ignore", "pipe", "pipe"]
-        });
-
-        // Wait for gRPC server to be ready
-        await this.waitForReady("localhost:3774");
-        return;
-      } catch (error) {
-        continue;
-      }
-    }
-
-    throw new Error("Failed to start Bindu core");
-  }
-
-  private async waitForReady(address: string): Promise<void> {
-    const maxAttempts = 30;
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        // Try to connect to gRPC server
-        const client = new BinduServiceClient(
-          address,
-          grpc.credentials.createInsecure()
-        );
-
-        // Simple health check
-        await new Promise((resolve, reject) => {
-          client.waitForReady(Date.now() + 1000, (err) => {
-            if (err) reject(err);
-            else resolve(null);
-          });
-        });
-
-        return; // Success!
-      } catch {
-        await new Promise(r => setTimeout(r, 100));
-      }
-    }
-
-    throw new Error("Bindu core failed to start");
-  }
-
-  stop(): void {
-    if (this.process) {
-      this.process.kill();
-      this.process = null;
-    }
-  }
-}
-```
-
-**Key Points:**
-- Try multiple methods to find the bindu CLI
-- Wait for the gRPC server to be ready before proceeding
-- Handle cleanup on shutdown
-
-### 5. Implement bindufy() Function
-
-Tie everything together in a developer-friendly API.
-
-**TypeScript Example:**
-
-```typescript
-export async function bindufy(
-  config: BinduConfig,
-  handler: (messages: ChatMessage[]) => Promise<string | HandlerResponse>
-): Promise<void> {
-  // 1. Read skill files
-  const skills = await readSkills(config.skills || []);
-
-  // 2. Start AgentHandler gRPC server (random port)
-  const handlerPort = await startAgentHandlerServer(handler);
-  const callbackAddress = `localhost:${handlerPort}`;
-
-  // 3. Spawn Python core
-  const coreLauncher = new CoreLauncher();
-  await coreLauncher.start();
-
-  // 4. Register agent
-  const response = await registerAgent(config, skills, callbackAddress);
-
-  console.log(`✅ Agent registered!`);
-  console.log(`   Agent ID: ${response.getAgentId()}`);
-  console.log(`   DID: ${response.getDid()}`);
-  console.log(`   URL: ${response.getAgentUrl()}`);
-
-  // 5. Start heartbeat loop
-  startHeartbeat(response.getAgentId());
-
-  // 6. Handle shutdown
-  process.on("SIGINT", async () => {
-    await unregisterAgent(response.getAgentId());
-    coreLauncher.stop();
-    process.exit(0);
-  });
-
-  // Keep process alive
-  await new Promise(() => {});
-}
-```
+The core processes the skill content without needing filesystem access to the SDK's project.
 
 ## Testing Your SDK
 
-### 1. Unit Tests
+**Unit test:** Mock the gRPC channel and verify `HandleMessages` correctly invokes the handler and serializes the response.
 
-Test each component in isolation:
+**Integration test:** Start a real Bindu core with `bindu serve --grpc`, register an agent from your SDK, send an A2A message, and verify the response. The Python E2E tests in `tests/integration/grpc/test_grpc_e2e.py` show exactly this pattern.
 
-```typescript
-describe("AgentHandlerServer", () => {
-  it("should handle messages", async () => {
-    const handler = async (messages) => "Echo: " + messages[0].content;
-    const server = new AgentHandlerServer(handler);
+**Smoke test:** Run one of the examples end-to-end and `curl` the agent.
 
-    const request = new HandleRequest();
-    request.addMessages(new ChatMessage().setRole("user").setContent("Hi"));
+## Reference: TypeScript SDK
 
-    const response = await server.handleMessages(request);
-    expect(response.getContent()).toBe("Echo: Hi");
-  });
-});
-```
+The TypeScript SDK at `sdks/typescript/` is the reference implementation. Study these files:
 
-### 2. Integration Tests
+| File | What it does | Lines |
+|------|-------------|-------|
+| `src/index.ts` | `bindufy()` function + skill loader | ~220 |
+| `src/server.ts` | AgentHandler gRPC server | ~130 |
+| `src/client.ts` | BinduService gRPC client | ~105 |
+| `src/core-launcher.ts` | Spawns Python core | ~170 |
+| `src/types.ts` | TypeScript interfaces | ~120 |
 
-Test the full flow:
+Total: ~745 lines. That's the entire SDK. Most of that is type definitions and error handling. The core logic is under 300 lines.
 
-```typescript
-describe("bindufy", () => {
-  it("should register and execute agent", async () => {
-    const handler = async (messages) => "Test response";
+## Publishing
 
-    // Start agent
-    bindufy({
-      author: "test@example.com",
-      name: "test-agent"
-    }, handler);
+Publish to your language's package registry:
 
-    // Wait for registration
-    await sleep(2000);
+| Language | Registry | Package name convention |
+|----------|----------|----------------------|
+| Rust | crates.io | `bindu-sdk` |
+| Go | Go modules | `github.com/getbindu/bindu-sdk-go` |
+| Swift | Swift Package Manager | `bindu-sdk` |
+| C# | NuGet | `Bindu.Sdk` |
 
-    // Send A2A request
-    const response = await fetch("http://localhost:3773", {
-      method: "POST",
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "message/send",
-        params: { message: { parts: [{ text: "Hello" }] } }
-      })
-    });
-
-    expect(response.ok).toBe(true);
-  });
-});
-```
-
-### 3. Manual Testing
-
-```bash
-# Start your SDK agent
-node examples/simple-agent.js
-
-# In another terminal, test with curl
-curl http://localhost:3773/.well-known/agent.json | jq
-```
-
-## Best Practices
-
-### Error Handling
-
-```typescript
-// Always wrap handler calls in try-catch
-try {
-  const result = await handler(messages);
-  return result;
-} catch (error) {
-  console.error("Handler error:", error);
-  throw new grpc.StatusError(
-    grpc.status.INTERNAL,
-    `Handler failed: ${error.message}`
-  );
-}
-```
-
-### Logging
-
-```typescript
-// Use structured logging
-console.log(`[bindu] Registering agent: ${config.name}`);
-console.log(`[bindu] AgentHandler listening on :${port}`);
-console.log(`[bindu] Heartbeat sent for ${agentId}`);
-```
-
-### Type Safety
-
-Provide full type definitions for your language:
-
-```typescript
-// TypeScript
-export interface BinduConfig {
-  author: string;
-  name: string;
-  description?: string;
-  // ... all fields
-}
-
-export type HandlerResponse = string | {
-  state?: string;
-  content?: string;
-  prompt?: string;
-};
-```
-
-```kotlin
-// Kotlin
-data class BinduConfig(
-    val author: String,
-    val name: String,
-    val description: String? = null
-)
-
-sealed class HandlerResponse {
-    data class Text(val content: String) : HandlerResponse()
-    data class Structured(
-        val state: String?,
-        val content: String?,
-        val prompt: String?
-    ) : HandlerResponse()
-}
-```
-
-## Example SDKs
-
-### TypeScript SDK Structure
-
-```
-sdks/typescript/
-├── src/
-│   ├── index.ts           # bindufy() function
-│   ├── client.ts          # BinduService client
-│   ├── server.ts          # AgentHandler server
-│   ├── core-launcher.ts   # Spawns Python core
-│   ├── types.ts           # TypeScript interfaces
-│   └── generated/         # Proto-generated code
-├── proto/
-│   └── agent_handler.proto
-├── package.json
-└── tsconfig.json
-```
-
-### Kotlin SDK Structure
-
-```
-sdks/kotlin/
-├── src/main/kotlin/com/getbindu/sdk/
-│   ├── BinduAgent.kt      # bindufy() function
-│   ├── Client.kt          # BinduService client
-│   ├── Server.kt          # AgentHandler server
-│   ├── CoreLauncher.kt    # Spawns Python core
-│   └── Types.kt           # Kotlin data classes
-├── build.gradle.kts
-└── proto/
-    └── agent_handler.proto
-```
-
-## Publishing Your SDK
-
-### npm (TypeScript/JavaScript)
-
-```json
-{
-  "name": "@bindu/sdk",
-  "version": "0.1.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist/", "proto/"]
-}
-```
-
-```bash
-npm publish --access public
-```
-
-### Maven Central (Kotlin/Java)
-
-```kotlin
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "com.getbindu"
-            artifactId = "bindu-sdk"
-            version = "0.1.0"
-        }
-    }
-}
-```
-
-### crates.io (Rust)
-
-```toml
-[package]
-name = "bindu-sdk"
-version = "0.1.0"
-```
-
-```bash
-cargo publish
-```
-
-## Resources
-
-- **[Proto Definition](../../proto/agent_handler.proto)** - Single source of truth
-- **[TypeScript SDK](../../sdks/typescript/)** - Reference implementation
-- **[API Reference](./api-reference.md)** - Complete gRPC API docs
-- **[Testing Guide](./testing.md)** - How to test your SDK
-
-## Support
-
-Questions? Open an issue on GitHub or reach out to the Bindu team.
+Include the proto file in the package so users don't need to download it separately.
