@@ -57,9 +57,9 @@
 
 ---
 
-**Bindu** (read: _binduu_) is an operating layer for AI agents that provides identity, communication, and payment capabilities. It delivers a production-ready service with a convenient API to connect, authenticate, and orchestrate agents across distributed systems using open protocols: **A2A**, **AP2**, and **X402**.
+**Bindu** (read: _binduu_) turns any AI agent into a production microservice. Build your agent in any framework — Agno, LangChain, OpenAI SDK, even plain TypeScript — call `bindufy()`, and get a service with DID identity, A2A protocol, OAuth2 auth, and crypto payments. No infrastructure code. No rewriting.
 
-Built with a distributed architecture (Task Manager, scheduler, storage), Bindu makes it fast to develop and easy to integrate with any AI framework. Transform any agent framework into a fully interoperable service for communication, collaboration, and commerce in the Internet of Agents.
+Works with Python, TypeScript, and Kotlin. Built on open protocols: **A2A**, **AP2**, and **X402**.
 
 <p align="center">
   <strong>🌟 <a href="https://getbindu.com">Register your agent</a> • 🌻 <a href="https://docs.getbindu.com">Documentation</a> • 💬 <a href="https://discord.gg/3w5zuYUuwt">Discord Community</a></strong>
@@ -268,8 +268,7 @@ Try Bindu without setting up Postgres, Redis, or any cloud services. Runs entire
 python examples/beginner_zero_config_agent.py
 ```
 
-
-### Option 3: Minimal Echo Agent (Testing)
+### Option 4: Minimal Echo Agent (Testing)
 
 <details>
 <summary><b>View minimal example</b> (click to expand)</summary>
@@ -464,7 +463,7 @@ Output:
 
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
-|  **Authentication** | Secure API access with Ory Hydra OAuth2 (optional for development) | [Guide →](docs/AUTHENTICATION.md) |
+| 🔐 **Authentication** | Secure API access with Ory Hydra OAuth2 (optional for development) | [Guide →](docs/AUTHENTICATION.md) |
 | 💰 **Payment Integration (X402)** | Accept USDC payments on Base blockchain before executing protected methods | [Guide →](docs/PAYMENT.md) |
 | 💾 **PostgreSQL Storage** | Persistent storage for production deployments (optional - InMemoryStorage by default) | [Guide →](docs/STORAGE.md) |
 | 📋 **Redis Scheduler** | Distributed task scheduling for multi-worker deployments (optional - InMemoryScheduler by default) | [Guide →](docs/SCHEDULER.md) |
@@ -496,83 +495,7 @@ Bindu includes a beautiful chat interface at `http://localhost:5173`. Navigate t
 
 ## 🌐 GetBindu.com
 
-The [**GetBindu.com**](https://getbindu.com) is a public registry of all Bindu agents, making them discoverable and accessible to the broader agent ecosystem.
-
-### 📝 Manual Registration
-
-Manual registration process is currently in development.
-
----
-
-<br/>
-
-## 🌌 The Vision
-
-```
-a peek into the night sky
-}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
-{{            +             +                  +   @          {{
-}}   |                *           o     +                .    }}
-{{  -O-    o               .               .          +       {{
-}}   |                    _,.-----.,_         o    |          }}
-{{           +    *    .-'.         .'-.          -O-         {{
-}}      *            .'.-'   .---.   `'.'.         |     *    }}
-{{ .                /_.-'   /     \   .'-.\.                   {{
-}}         ' -=*<  |-._.-  |   @   |   '-._|  >*=-    .     + }}
-{{ -- )--           \`-.    \     /    .-'/                   }}
-}}       *     +     `.'.    '---'    .'.'    +       o       }}
-{{                  .  '-._         _.-'  .                   }}
-}}         |               `~~~~~~~`       - --===D       @   }}
-{{   o    -O-      *   .                  *        +          {{
-}}         |                      +         .            +    }}
-{{ jgs          .     @      o                        *       {{
-}}       o                          *          o           .  }}
-{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
-```
-
-_Each symbol is an agent — a spark of intelligence. The tiny dot is Bindu, the origin point in the Internet of Agents._
-
-### NightSky Connection (In Progress)
-
-NightSky enables swarms of agents. Each Bindu is a dot annotating agents with the shared language of A2A, AP2, and X402. Agents can be hosted anywhere—laptops, clouds, or clusters—yet speak the same protocol, trust each other by design, and work together as a single, distributed mind.
-
-> **💭 A Goal Without a Plan Is Just a Wish.**
-
----
-
-<br/>
-
-## 🌍 Language-Agnostic Agents
-
-Bindu isn't limited to Python. Write your agent in **any language** — the gRPC adapter handles the rest.
-
-**Python** (direct, in-process):
-```python
-from bindu.penguin.bindufy import bindufy
-
-bindufy(config, handler)
-```
-
-**TypeScript** (via `@bindu/sdk`):
-```typescript
-import { bindufy } from "@bindu/sdk";
-
-bindufy(config, async (messages) => {
-  const res = await openai.chat.completions.create({ model: "gpt-4o", messages });
-  return res.choices[0].message.content;
-});
-```
-
-**Kotlin** (via `bindu-sdk`):
-```kotlin
-bindufy(config) { messages ->
-    myAgent.run(messages.last().content)
-}
-```
-
-All three produce the same result: a full A2A microservice with DID, auth, x402, scheduling, and storage. The TypeScript/Kotlin SDKs automatically launch the Bindu core in the background — one command, one terminal.
-
-See [examples/](examples/) for working examples and [docs/GRPC_LANGUAGE_AGNOSTIC.md](docs/GRPC_LANGUAGE_AGNOSTIC.md) for full details.
+[**GetBindu.com**](https://getbindu.com) is a public registry of Bindu agents — discoverable and accessible to the broader agent ecosystem. Register your agent and make it available to other agents and orchestrators.
 
 ---
 
@@ -596,6 +519,8 @@ Bindu is **framework-agnostic** and tested with:
 
 **Kotlin:**
 - **OpenAI Kotlin SDK**
+
+Bindu is language-agnostic via gRPC — see [docs/grpc/](docs/grpc/) for how it works and how to add new languages.
 
 Want integration with your favorite framework? [Let us know on Discord](https://discord.gg/3w5zuYUuwt)!
 
@@ -739,6 +664,40 @@ Grateful to these projects:
 - [X402](https://github.com/coinbase/x402)
 - [Bindu Logo](https://openmoji.org/library/emoji-1F33B/)
 - [ASCII Space Art](https://www.asciiart.eu/space/other)
+
+---
+
+<br/>
+
+## 🌌 The Vision
+
+```
+a peek into the night sky
+}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+{{            +             +                  +   @          {{
+}}   |                *           o     +                .    }}
+{{  -O-    o               .               .          +       {{
+}}   |                    _,.-----.,_         o    |          }}
+{{           +    *    .-'.         .'-.          -O-         {{
+}}      *            .'.-'   .---.   `'.'.         |     *    }}
+{{ .                /_.-'   /     \   .'-.\.                   {{
+}}         ' -=*<  |-._.-  |   @   |   '-._|  >*=-    .     + }}
+{{ -- )--           \`-.    \     /    .-'/                   }}
+}}       *     +     `.'.    '---'    .'.'    +       o       }}
+{{                  .  '-._         _.-'  .                   }}
+}}         |               `~~~~~~~`       - --===D       @   }}
+{{   o    -O-      *   .                  *        +          {{
+}}         |                      +         .            +    }}
+{{ jgs          .     @      o                        *       {{
+}}       o                          *          o           .  }}
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+```
+
+_Each symbol is an agent — a spark of intelligence. The tiny dot is Bindu, the origin point in the Internet of Agents._
+
+### NightSky Connection (In Progress)
+
+NightSky enables swarms of agents. Each Bindu is a dot annotating agents with the shared language of A2A, AP2, and X402. Agents can be hosted anywhere — laptops, clouds, or clusters — yet speak the same protocol, trust each other by design, and work together as a single, distributed mind.
 
 ---
 
