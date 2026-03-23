@@ -51,7 +51,7 @@ class AgentRegistry:
     call these concurrently.
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         self._agents: dict[str, RegisteredAgent] = {}
         self._lock = threading.Lock()
 
@@ -137,6 +137,6 @@ class AgentRegistry:
         with self._lock:
             return list(self._agents.values())
 
-    def __len__(self) -> int:
+    def __len__(self) -> int:  # noqa: D105
         with self._lock:
             return len(self._agents)

@@ -74,7 +74,7 @@ class BinduServiceImpl(agent_handler_pb2_grpc.BinduServiceServicer):
         registry: Thread-safe agent registry for tracking registered agents.
     """
 
-    def __init__(self, registry: AgentRegistry) -> None:
+    def __init__(self, registry: AgentRegistry) -> None:  # noqa: D107
         self.registry = registry
 
     def RegisterAgent(
@@ -208,7 +208,8 @@ class BinduServiceImpl(agent_handler_pb2_grpc.BinduServiceServicer):
         # Close the GrpcAgentClient connection if it exists
         entry = self.registry.get(request.agent_id)
         if entry and hasattr(entry.manifest.run, "close"):
-            entry.manifest.run.close()
+            close_fn = getattr(entry.manifest.run, "close")
+            close_fn()
 
         removed = self.registry.unregister(request.agent_id)
         if removed:

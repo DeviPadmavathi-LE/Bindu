@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from bindu.grpc.client import GrpcAgentClient
 from bindu.grpc.generated import agent_handler_pb2

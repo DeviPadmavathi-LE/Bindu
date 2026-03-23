@@ -57,7 +57,7 @@ def _handle_serve(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    """Main entry point for the `bindu` CLI."""
+    """Run the Bindu CLI."""
     parser = argparse.ArgumentParser(
         prog="bindu",
         description="Bindu Framework CLI",

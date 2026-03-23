@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from bindu.grpc.registry import AgentRegistry, RegisteredAgent
 

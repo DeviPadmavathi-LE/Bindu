@@ -595,9 +595,7 @@ def _bindufy_core(
                 name=f"uvicorn-{validated_config['name']}",
             )
             server_thread.start()
-            logger.info(
-                f"HTTP server started in background thread on {host}:{port}"
-            )
+            logger.info(f"HTTP server started in background thread on {host}:{port}")
         else:
             # Run server blocking (normal Python bindufy path)
             start_uvicorn_server(bindu_app, host=host, port=port, display_info=True)

@@ -3,7 +3,6 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from bindu.grpc.generated import agent_handler_pb2
 from bindu.grpc.registry import AgentRegistry

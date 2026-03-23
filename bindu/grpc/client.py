@@ -195,5 +195,5 @@ class GrpcAgentClient:
             self._stub = None
             logger.debug(f"Closed connection to {self._address}")
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return f"GrpcAgentClient(address={self._address!r}, timeout={self._timeout})"
