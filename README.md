@@ -86,7 +86,7 @@ Before installing Bindu, ensure you have:
 
 - **Python 3.12 or higher** - [Download here](https://www.python.org/downloads/)
 - **UV package manager** - [Installation guide](https://github.com/astral-sh/uv)
-- **API Key Required**: Set `OPENROUTER_API_KEY` or `OPENAI_API_KEY` in your environment variables. Free OpenRouter models are available for testing.
+- **API Key Required**: Set `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, or `MINIMAX_API_KEY` in your environment variables. Free OpenRouter models are available for testing. [MiniMax AI](https://platform.minimaxi.com) offers M2.7 with 1M context window.
 
 
 ### Verify Your Setup
@@ -521,6 +521,11 @@ Bindu is **framework-agnostic** and tested with:
 - **OpenAI Kotlin SDK**
 
 Bindu is language-agnostic via gRPC — see [docs/grpc/](docs/grpc/) for how it works and how to add new languages.
+
+**Compatible LLM Providers:**
+- **OpenRouter** — Access 100+ models through a single API
+- **OpenAI** — GPT-4o, GPT-5, and more
+- **[MiniMax AI](https://platform.minimaxi.com)** — M2.7 (1M context), M2.5, M2.5-highspeed (204K context) via OpenAI-compatible API
 
 Want integration with your favorite framework? [Let us know on Discord](https://discord.gg/3w5zuYUuwt)!
 

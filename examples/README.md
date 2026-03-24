@@ -48,6 +48,7 @@ For full URL override, use `BINDU_DEPLOYMENT_URL` (e.g. `http://127.0.0.1:5001`)
 - `beginner/faq_agent.py` - Documentation search agent
 - `beginner/agno_notion_agent.py` - Notion integration
 - `beginner/ag2_simple_example.py` - AG2 (AutoGen) simple agent
+- `beginner/minimax_example.py` - MiniMax AI research agent (OpenAI-compatible)
 - `beginner/dspy_agent.py` - DSPy framework integration
 - `beginner/agno_paywall_example.py` - Paywall-protected agent
 - `beginner/echo_agent_behind_paywall.py` - Echo agent with payment requirement
@@ -81,8 +82,9 @@ For full URL override, use `BINDU_DEPLOYMENT_URL` (e.g. `http://127.0.0.1:5001`)
 ## Environment Variables
 
 ```bash
-# Required
+# Required (at least one LLM provider)
 OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
+MINIMAX_API_KEY=your-minimax-api-key  # Alternative: MiniMax AI (https://platform.minimaxi.com)
 
 # Optional
 PORT=4000
