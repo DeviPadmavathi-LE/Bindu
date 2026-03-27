@@ -289,7 +289,9 @@ class MessageHandlers:
                                     return
                         return
 
+                    # FIX: Exponential backoff to prevent DB hammering
                     await anyio.sleep(poll_interval)
+                    poll_interval = min(poll_interval * 1.5, 2.0)
             except cancelled_exc:
                 logger.debug(f"Streaming client disconnected for task {task['id']}")
                 return

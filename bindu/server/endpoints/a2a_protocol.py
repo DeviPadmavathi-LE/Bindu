@@ -6,7 +6,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, StreamingResponse
 
 from bindu.common.protocol.types import (
     InternalError,
@@ -190,8 +190,8 @@ async def agent_run_endpoint(app: BinduApplication, request: Request) -> Respons
 
         logger.debug(f"A2A response to {client_ip}: method={method}, id={request_id}")
 
-        # Streaming handlers return a Starlette Response directly
-        if isinstance(jsonrpc_response, Response):
+        # FIX: Strictly check for StreamingResponse to prevent bypassing JSON-RPC
+        if isinstance(jsonrpc_response, StreamingResponse):
             if x402_is_requested(request):
                 jsonrpc_response = x402_add_header(jsonrpc_response)
             return jsonrpc_response
