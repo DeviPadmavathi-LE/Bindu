@@ -673,7 +673,9 @@ def bindufy(
         manifest = bindufy(config, my_handler)
     """
     if not callable(handler):
-        raise TypeError("handler must be callable")
+        raise TypeError(
+            "HandlerError: 'handler' must be a callable function or coroutine function."
+        )
 
     # Get caller information for file paths
     frame = inspect.currentframe()
