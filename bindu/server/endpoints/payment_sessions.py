@@ -57,7 +57,7 @@ async def start_payment_session_endpoint(
         return error_resp
 
     assert app._payment_session_manager is not None  # Validated above
-    start_time = time.perf_counter()
+    start_time = time.perf_counter()  # using perf_counter for accurate timing
 
     logger.info("payment_session_start")
 
