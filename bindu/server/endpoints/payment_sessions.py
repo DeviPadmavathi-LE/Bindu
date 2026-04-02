@@ -21,6 +21,7 @@ import base64
 import json
 import time
 
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 from x402.encoding import safe_base64_decode
@@ -56,14 +57,14 @@ async def start_payment_session_endpoint(
         return error_resp
 
     assert app._payment_session_manager is not None  # Validated above
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     logger.info("payment_session_start")
 
     try:
         session = app._payment_session_manager.create_session()
 
-        duration_ms = int((time.time() - start_time) * 1000)
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
 
         logger.bind(
             session_id=session.session_id,
@@ -138,7 +139,7 @@ async def payment_capture_endpoint(app: BinduApplication, request: Request) -> R
 
             return HTMLResponse(content=_get_success_html(session_id), status_code=200)
 
-        except Exception as e:
+        except (ValueError, ValidationError) as e:
             error_msg = f"Invalid payment: {str(e)}"
             logger.bind(
                 session_id=session_id,
