@@ -57,22 +57,23 @@ async def start_payment_session_endpoint(
         return error_resp
 
     assert app._payment_session_manager is not None  # Validated above
-    start_time = time.perf_counter()  # using perf_counter for accurate timing
+    start_time = time.time() 
 
     logger.info("payment_session_start")
 
     try:
         session = app._payment_session_manager.create_session()
 
-        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        duration_ms = int((time.time() - start_time) * 1000)
 
-        logger.bind(
-            session_id=session.session_id,
-            duration_ms=duration_ms
-        ).info("payment_session_created")
+        logger.bind(session_id=session.session_id, duration_ms=duration_ms).info(
+            "payment_session_created"
+        )
 
     except Exception as e:
-        logger.bind(error=str(e)).error("payment_session_creation_failed", exc_info=True)
+        logger.bind(error=str(e)).error(
+            "payment_session_creation_failed", exc_info=True
+        )
         raise
 
     # Construct browser URL using app's base URL
@@ -133,18 +134,15 @@ async def payment_capture_endpoint(app: BinduApplication, request: Request) -> R
             # Store payment in session (NOT consumed yet!)
             app._payment_session_manager.complete_session(session_id, payment_payload)
 
-            logger.bind(
-                session_id=session_id
-            ).info("payment_captured")
+            logger.bind(session_id=session_id).info("payment_captured")
 
             return HTMLResponse(content=_get_success_html(session_id), status_code=200)
 
-        except (ValueError, ValidationError) as e:
+        except Exception as e:
             error_msg = f"Invalid payment: {str(e)}"
-            logger.bind(
-                session_id=session_id,
-                error=str(e)
-            ).error("payment_capture_failed", exc_info=True)
+            logger.bind(session_id=session_id, error=str(e)).error(
+                "payment_capture_failed", exc_info=True
+            )
             app._payment_session_manager.fail_session(session_id, error_msg)
 
             return HTMLResponse(content=_get_error_html(error_msg), status_code=400)
@@ -194,10 +192,7 @@ async def payment_status_endpoint(app: BinduApplication, request: Request) -> Re
 
     wait = request.query_params.get("wait", "false").lower() == "true"
 
-    logger.bind(
-        session_id=session_id,
-        wait=wait
-    ).info("payment_status_requested")
+    logger.bind(session_id=session_id, wait=wait).info("payment_status_requested")
 
     if wait:
         # Wait for completion
@@ -209,9 +204,7 @@ async def payment_status_endpoint(app: BinduApplication, request: Request) -> Re
         session = app._payment_session_manager.get_session(session_id)
 
     if session is None:
-        logger.bind(
-            session_id=session_id
-        ).warning("payment_session_not_found")
+        logger.bind(session_id=session_id).warning("payment_session_not_found")
         return JSONResponse(
             content={"error": "Session not found or expired"}, status_code=404
         )
@@ -225,9 +218,7 @@ async def payment_status_endpoint(app: BinduApplication, request: Request) -> Re
     if session.error:
         response_data["error"] = session.error
     if session.is_completed():
-        logger.bind(
-            session_id=session_id
-        ).info("payment_session_completed")
+        logger.bind(session_id=session_id).info("payment_session_completed")
 
     # Include payment token if completed (but don't consume it!)
     if session.is_completed() and session.payment_payload:
