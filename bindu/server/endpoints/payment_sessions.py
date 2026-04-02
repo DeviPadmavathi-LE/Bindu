@@ -7,6 +7,8 @@
 #
 #  Thank you users! We ❤️ you! - 🌻
 
+from __future__ import annotations
+
 """Payment endpoints for x402 payment flow.
 
 Provides REST API endpoints for payment session management:
@@ -14,8 +16,6 @@ Provides REST API endpoints for payment session management:
 - GET /payment-capture: Browser page to capture payment
 - GET /api/payment-status/{session_id}: Get payment status and token
 """
-
-from __future__ import annotations
 
 import base64
 import json
